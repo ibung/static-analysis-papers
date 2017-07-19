@@ -1,0 +1,904 @@
+\documentclass[a4paper,UKenglish]{lipics-v2016}
+% This template is based on the template for producing LIPIcs articles.
+% See lipics-manual.pdf for further information.
+% https://www.dagstuhl.de/en/publications/lipics/instructions-for-authors/
+% for section-numbered lemmas etc., use "numberwithinsect"
+
+% we do not need the copyright line or the DOI
+\renewcommand{\copyrightline}{}
+\DOIPrefix{}
+
+
+\bibliographystyle{plainurl}% the recommended bibstyle
+
+% Author macros::begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Advanced Type-Based Analysis: Summary of Selected Papers}
+
+
+%% Add all author names here
+\author[1]{Nikita Ziuzin, Joachim Bard, Hizbullah Abdul Aziz}
+% List email addresses in the same order as the authors
+\affil[1]{\texttt{nzyuzin93@gmail.com}, \texttt{s9jobard@stud.uni-saarland.de}, \texttt{s8hijabb@stud.uni-saarland.de}}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Introduction}
+Dependent types have been succesfully applied to advanced type-based program
+analysis, for example to prove safety properties of arrays, security protocols,
+and prove compiler correctness.  The first paper is an early example of
+application of dependent types.  The idea got developed further (among others)
+by the second paper in the form of Logically Qualified Data Types or "Liquid
+Types".  Finally, the third paper extends Liquid Types in the context of
+Haskell Programming Language which uses lazy evaluation by default.
+
+
+
+\section{Paper 1: Eliminating array bound checking through dependent types}
+
+\abstract
+
+Originating in type theory, dependent types is a powerful concept for extending
+type checking for the purposes of program analysis. Its applications allow to
+perform many advanced forms of analysis with a little work on the programmer's
+side (providing correct type annotations). One of such applications is
+elimination of array bound checking during the compilation time using dependent
+types.
+
+\subsection{Note on dependent types}
+
+The concept of the dependent types is quite rich and well-studied, the main
+idea behind it is that dependent type systems unlike systems with simple types
+allow for types to depend on or vary with values. Examples to simple types are
+products, functions or atomic types that are \texttt{int} or \texttt{bool}.
+
+A classical example of a dependent type is a type of lists $List_\gamma(N)$ of
+a given length $N : \mathbb{N}$ over some type $\gamma$. The elements of such
+type are $Nil_\gamma : List(0)$ and $Cons_\gamma(x, l) : List(N+1)$, where $x :
+\gamma$ and $l : List_\gamma(N)$. Now let's consider a function that takes $n :
+\mathbb{N}$ and returns a list of length $n$ containing $0$ in all entries.
+This function would have type $\Pi n : \mathbb{N}.List_\mathbb{N}(n)$, a type
+of functions for which the type of the return value depends on the argument.
+The important point of the dependent typing is that it reveals more information
+about the function.
+
+In the following no knowledge of the full theory of dependent types is assumed,
+and furthermore, no such knowledge is required, as for the purpose of the paper
+only a limited part of the dependent type systems is used. This part is fully
+explained in the following sections. The limitation excludes terms of general
+form (that possibly make type checking undecidable) from type formers and only
+allows for a limited set of decidable refinements to be used.
+
+However, some familiarity with the type theory notation and/or ML syntax
+will be assumed.
+
+For a full study on the dependent types the reader is referred to the following
+paper \cite{Hofmann97syntaxand}.
+
+\subsection{Introduction}
+The problem of an absence of runtime array bound checking in lower level
+languages, such as C has led to numerous problems over time. However, even in
+the languages that perform this runtime checking, it still makes an issue
+imposing additional execution time costs for every array access.  Moreover,
+this issue is present not only for the imperative languages with array
+accesses, but also for more general cases of accessing list elements through
+pattern matching in strongly typed functional languages. Traditional compiler
+optimizations for this analysis do not guarantee that they are always able to
+infer the correct array bounds \cite{Gupta:1993}\cite{Suzuki:1977}.
+
+On the other hand, approach that relies on the dependent types makes array
+bounds checking a part of the type checking, with appropriate (albeit minor)
+help from the programmer in form of more advanced type annotations. These
+annotations construct a set of linear arithmetic value constraints which can be
+efficiently checked for the satisfiability.
+
+To give a practical validation to the  concept all examples are given in a
+language that implements ML fragment extended with a limited form of dependent
+types. This fragment matches the core language of ML standard, making omission
+for exceptions and modules, which are not relevant to the issue by themselves,
+and contains the addition of type annotations that cover the required
+expressibility properties.
+
+In the following, a value on which a dependent type is formed will be called an
+\emph{index object}. For example, a type of integer lists in ML would be
+written as follows: \texttt{int list}. To express a type of the integer lists
+of length two one writes: \texttt{int list(2)}, where 2 is exactly the
+\emph{index object}.  Then a function to append two integer lists of fixed
+lengths \texttt{n} and \texttt{m} would have the type: \texttt{int(n) -> int(m)
+-> int(n+m)}.
+
+It is worth notice that if arbitrary terms can be used as index objects, then
+type checking becomes undecidable, since it would involve arbitrary
+computations.  Considering this, severe limitations on the index objects will
+be imposed, distinguishing them from the general term of the implemented
+language.
+
+\subsection{Types and typing}
+
+\subsubsection{The language of types}
+This section presents a syntax for writing the index objects and forming the
+type annotations in the implemented language.
+
+Type indices may be integer or boolean expressions defined below.
+$a$ ranges over the index variables.
+\begin{align*}
+  \text{Integer index } & i,j &&::= &&& a|i+j|i-j|i*j|div(i,j)\\
+                &     &&    &&& |min(i,j)|max(i,j)\\
+                &     &&    &&& |abs(i)|sign(i,j)|mod(i,j)\\
+  \text{Boolean index } & b &&::= &&& a|false|true\\
+                &     &&    &&& |i < j | i \leq j \\
+                &     &&    &&& |i = j|i \geq j | i > j\\
+                &     &&    &&& |\neg b| b_1 \land b_2 | b_1 \lor b_2\\
+  \text{Index } & d &&::= &&& i|b
+\end{align*}
+
+$\delta$ ranges over base types or \emph{basic type families}, that may be built-in
+(\texttt{int}, \texttt{array}) or user-declared. $\alpha$ stands for type variables.
+\begin{align*}
+  \text{Index sort } & \gamma &&::= &&& int | bool | \{ a: \gamma | b \}\\
+  \text{Types } & \tau &&::= &&& \alpha | (\tau_1, \dots, \tau_n)\delta (d_1, \dots, d_k) | \{ a: \gamma | b \}\\
+                &      &&    &&& | \tau_1 * \dots * \tau_n | \tau_1 \to \tau_2\\
+                &      &&    &&& | \Pi a: \gamma. \tau | \Sigma a: \gamma. \tau
+\end{align*}
+
+For clarity, the type constructor with no arguments or indices is written
+simply as $\delta$ (instead of $()\delta()$).
+
+Notation $\{ a: \gamma | b \}$ denotes those elements of $\gamma$ that satisfy
+the boolean constraints $b$.  $nat$ serves as an abbreviation for $\{ a: int |
+a \geq 0 \}$. The types $\Pi a: \gamma. \tau$ and $\Sigma a: \gamma. \tau$
+denote universal and existential quantification of $a$ respectively.
+
+In the examples, implementation language uses uses \texttt{\{a:g\} t} for $\Pi
+a: \gamma. \tau$ and \texttt{[a:g] t} for $\Sigma a: \gamma. \tau$. One can
+also write \texttt{\{a:g | b\} t} for $\Pi a: \{a: \gamma | b\}. \tau$.
+
+\subsubsection{Built-in type families}
+
+The examined ML fragment extension includes type families for integers, arrays
+and booleans as built-in.
+
+\begin{itemize}
+  \item For every integer $n$, \texttt{int(n)} is a singleton type containing
+    only $n$.
+  \item \texttt{bool(true)} and \texttt{bool(false)} are singleton types for
+    \texttt{true} and \texttt{false} respectively.
+  \item For a natural number $n$, \texttt{'a array(n)} is the type for arrays
+    of size $n$ over a type \texttt{'a}
+
+    One can also omit indices in type specification, in that case they will
+    interpreted existentially. For instance, the type \texttt{int array} will
+    be converted to $\Sigma n : nat$.\texttt{int array}$(n)$, which can be read
+    as an array of an unknown size $n$.
+\end{itemize}
+
+\subsubsection{Datatype refinements}
+
+As in ML standard, besides having such types as \texttt{int}, \texttt{bool} and
+\texttt{array}, users can declare their own types with the usual construct.
+Consider a declaration of a list type:
+\begin{verbatim}
+datatype 'a list =
+  nil
+| :: of 'a * 'a list
+\end{verbatim}
+
+There's then a possibility to refine this declaration with type indices:
+\begin{verbatim}
+typeref 'a list of nat
+with nil <| 'a list(0)
+| :: <| {n:nat} 'a * 'a list(n) -> 'a list(n+1)
+\end{verbatim}
+
+And this refinement forms a dependent type for lists with the list size exposed
+in the type, that was discussed earlier.
+
+\subsubsection{Example functions}
+
+\begin{lstlisting}[caption={The dot product function},label=dotprod,captionpos=t,float,abovecaptionskip=-\medskipamount]
+assert length <| {n:nat} 'a array(n) -> int(n)
+and sub <| {n:nat} {i:nat | i < n} 'a array(n) * int(i) -> 'a
+
+fun dotprod(v1, v2) =
+  let
+    fun loop(i, n, sum) =
+      if i = n then sum
+      else loop(i+1, n, sum + sub(v1, i) * sub(v2, i))
+    where loop <| {n:nat} {i:nat | i <= n}
+      int(i) * int(n) * int -> int
+  in
+    loop(0, length v1, 0)
+  end
+where dotprod <| {p:nat} {q:nat | p <= q }
+  int array(p) * int array(q) -> int
+\end{lstlisting}
+
+To introduce the language, Figure \ref{dotprod} shows an example of a function
+calculating the dot product of two vectors organized as arrays.
+
+The example illustrates the use of the dependent types in the language, where
+dependent types are given after the \texttt{where} keyword. It's worth notice
+that if one decides to omit the lines containing \texttt{where} from the
+function code, the function can be accepted by any compiler adhering to the ML
+standard. Predefined function \texttt{length} returns the length of a given
+array and \texttt{sub} returns an element at the specified position. Note that
+the type declaration of \texttt{sub} ensures that the array access is always
+within the array bounds and therefore avoids the need for the runtime bound
+checking. The same use of the dependent types is applied to \texttt{loop} and
+\texttt{dotprod} type declarations.
+
+\begin{lstlisting}[caption={The reverse function for lists},label=reverse,captionpos=t,float,abovecaptionskip=-\medskipamount]
+fun reverse(l) =
+let
+  fun rev(nil, ys) = ys
+    | rev(x::xs, ys) = rev(xs, x::ys)
+  where rev <| {m:nat} {n:nat}
+    'a list(m) * 'a list(n) -> 'a list(m+n)
+in
+  rev(l, nil)
+end
+where reverse <| {n:nat} 'a list(n) -> 'a list(n)
+\end{lstlisting}
+
+Another example on Figure \ref{reverse} illustrates a function computing the
+reverse of a given list. The type here ensures that the size of the list
+doesn't change from the argument to the result.
+
+\begin{lstlisting}[caption={The filter function for lists},label=filter,captionpos=t,float,abovecaptionskip=-\medskipamount]
+fun filter p nil = nil
+  | filter p (x::xs) =
+    if p(x) then x::(filter p xs)
+    else filter p xs
+where filter <| {m: nat}
+  ('a -> bool) -> 'a list(m) -> [n:nat | n <= m] 'a list(n)
+\end{lstlisting}
+
+Figure \ref{filter} depicts a function that makes use of existentially
+quantified dependent types. This function removes all elements from the list
+$l$ which do not satisfy the predicate $p$. Obviously, for an arbitrary $p$,
+it's impossible to give an exact value of the resulting list size without
+computing the function. Therefore this value cannot be accepted as a function
+argument, but still can have a specific bound, that is -- the size of the
+resulting list should not be greater than the size of the initial list.
+\texttt{[n:nat | n <= m] 'a list(n)} expresses exactly this, yielding a list of
+some definitive size, which is bound by a fixed number.
+
+More details to the language and example programs can be found in
+\cite{Xi:1998}\cite{XiPhd:1998}.
+
+\subsection{Constraints}
+
+The given definition of dependent types leads to a formation of constraints on
+the values used in the program, where constraints are boolean index expressions
+enriched with explicit quantifiers and implication.
+
+The language for constrains is as follows:
+\begin{align*}
+  \text{Constraints } &\phi &&::= &&&b | \phi_1 \land \phi_2 | b \supset \phi\\
+                      &     &&    &&&| \exists a : \gamma. \phi | \forall a : \gamma. \phi
+\end{align*}
+
+Constraints are extracted from the program after it has been type checked
+ignoring dependent types and verified correct by the ML type inference.
+
+\subsubsection{Constraint generation}
+
+Consider the \texttt{rev} function from the Figure \ref{reverse}:
+\begin{verbatim}
+fun rev(nil, ys) = ys
+  | rev(x::xs, ys) = rev(xs, x::ys)
+where rev <| {m:nat} {n:nat}
+  'a list(m) * 'a list(n) -> 'a list(m+n)
+\end{verbatim}
+
+For the first case of \texttt{rev}, namely \texttt{rev(nil, ys) = ys} the two
+variables $M$ and $N$ are generated according to the index objects of the
+function type.  Then \texttt{nil} is checked against the type \texttt{'a
+list($M$)} and \texttt{ys} is checked against the type \texttt{'a list($N$)}.
+
+This generates constraints $M = 0$ and $N = \texttt{n}$, where \texttt{ys} is
+assumed to be of type \texttt{'a list(n)}. Afterwards, the type of the right
+hand side of the pattern matching clause, \texttt{ys}, is checked against
+\texttt{'a list($M$ + $N$)}, the result type for \texttt{rev}. This yields a
+constraint $M + N = \texttt{n}$.
+
+Thus, the first clause of the pattern matching in the function definition
+generates the constraint:
+
+$\forall n : nat. \exists M : nat. \exists N : nat. (M = 0 \land N = n \supset M + N = n)$
+
+This is simplified by the elimination of the existential variables to:
+
+$\forall n : nat. (0 + n = n)$
+
+which is stored and easily verified on the later stages.
+
+Applying the same procedure to the second case in the definition,
+\texttt{rev(x::xs, ys) = rev(xs, x::ys)} provides the following constraint:
+
+$\forall m : nat. \forall n : nat.(m + 1) + n = m + (n + 1)$,
+
+that can also be satisfied.
+
+\subsubsection{Constraint solving}
+
+The reader may notice, that constraints obtained by the given syntactic rules
+generate a set of linear integer arithmetic equations and thus can be solved by
+any LIA solver. For the purpose, many various methods exists, such as
+Fourirer-Motzkin, Simplex, SUP-INF, etc.
+
+Applying these methods to the set of constrains will ensure that type checking
+on dependent types passes if and only if the constrains are satisfiable by the
+solving procedure.
+
+\subsubsection{Experiments}
+
+The computational experiments with the programs written using this bound
+checking elimination technique show a stable performance gain (10-70\%) among
+the studied programs. The associated code changes (type annotations) are
+considerably insignificant in size compared to the overall size of the program.
+
+The exact implementation and experimental details are found in \cite{Xi:1998}.
+
+\subsection{Related work}
+
+The original paper became the influential example of a practical dependent
+types application for the purposes of static analysis. The ideas got
+implemented in form of DML dialect of ML \cite{XiPhd:1998} and inspired further
+developments in refinement types.
+
+
+
+\section{Paper 2: Liquid Types}
+
+\subsection{Introduction}
+
+Rondon et al. introduced Logically Qualified Data Types or short Liquid Types in~\cite{Rondon:2008:LT}.
+Liquid types are dependent types and thus one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu < 100\}$.
+If one thinks of $i$ as an index of an array with 100 elements the type ensures that one can safely access the array at index $i$.
+The advantage of liquid types is that those types can be infered automatically.
+The inference is done in 3 steps:
+\begin{enumerate}
+    \item Step 1 performs a standard Hindley-Milner (HM) type inference.
+        The obtained types are transformed into templates where the unknown type refinements are expressed by so called liquid type variables.
+    \item Step 2 generates a set of subtype constraints which restrict choices for the liquid type variables.
+        This step is guided by the syntax.
+    \item Step 3 tries to solve these constraints by embedding them into a decidable logic.
+\end{enumerate}
+
+To describe the refinements of liquid types we take a set of predicates (qualifiers) over program variables, a special variable $\nu$ and a placeholder $\star$ for program variables.
+To illustrade this we choose $\mathbb{Q} = \{ 0 \le \nu, \star \le \nu, \nu < \star, \nu <$ \lstinline{len} $\star\}$.
+The set $\mathbb{Q}^\star$ contains all qualifiers which are obtained by choosing a qualifier from $\mathbb{Q}$ and replace the $\star$-s by program variables.
+So $0 \le \nu, x \le \nu, \nu < n$ and $\nu <$ \lstinline{len} $a$ are contained in $\mathbb{Q}^\star$.
+By taking conjunctions of qualifiers from $\mathbb{Q}^\star$ we get refinements of liquid types.
+We use some abbreviations.
+A type $B$ is short for $\{\nu: B \mid true\}$.
+We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ and $\{e\}$ for $\{\nu: B \mid e\}$ with a predicate $e$ if the type $B$ is clear from the context.
+
+\subsection{Examples}
+\label{subsec:exmpl}
+
+In this subsection several properties of liquid types are shown using examples.
+Each example illustrates how liquid types interact with a given language feature.
+
+\begin{lstlisting}[caption={Example Program},label=lst:exmpl,captionpos=t,float,abovecaptionskip=-\medskipamount]
+let max x y =
+    if x > y then x else y
+
+let rec sum k =
+    if k < 0 then 0 else
+        let s = sum (k - 1)
+        in s + k
+
+let foldn n b f =
+    let rec loop i c =
+        if i < n then loop (i + 1) (f i c) else c
+    in loop 0 b
+
+let arraymax a =
+    let am l m = max (sub a l) m
+    in foldn (len a) 0 am
+\end{lstlisting}
+
+\subsubsection{Path Sensitivity}
+
+We will show that the function \lstinline{max} in Listing~\ref{lst:exmpl} returns a value which is greater or equal to both arguments.
+In step 1 HM yields the type $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int} for \lstinline{max}.
+Using this type we build the template $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa_1$.
+The liquid type variables $\kappa_x, \kappa_y, \kappa_1$ are the unknown refinements for the arguments $x$ and $y$ plus the body of \lstinline{max}.
+Step 2 generates the following constraints since the body is an \lstinline{if}-expression:
+\begin{align}
+    \label{algn:max}
+    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu = x \} <: \kappa_1\\
+    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu = y \} <: \kappa_1
+\end{align}
+The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu = x \}$) to be a subtype of the body ($\kappa_1$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
+The second contraint is analogous.
+Note that in the environment the branch condition is false.
+So path sensitivity is introduced by adding assumptions to the environment.
+In step 3 we set $\kappa_x$ and $\kappa_y$ to true because \lstinline{max} can be called by any integer.
+Moreover we use a theorem prover to get the strongest conjunction of qualifiers in $\mathbb{Q}^\star$ for $\kappa_1$ which staisfies the two constraints.
+We get $x \le \nu \land y \le \nu$ since if $x > y \land \nu = x$ then $x \le \nu \land y \le \nu$ and if $\neg(x > y) \land \nu = y$ then $x \le \nu \land y \le \nu$.
+Thus we obtain the type:
+\begin{center}
+    \lstinline{max} :: $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu\}$.
+\end{center}
+
+
+\subsubsection{Recursion}
+
+Now we show that the recursive function \lstinline{sum} from Listing~\ref{lst:exmpl} returns a non-negative integer not less than the argument $k$.
+HM in step 1 yields $k:$ \lstinline{int} $\rightarrow y:$ \lstinline{int}.
+We obtain the template $k: \kappa_k \rightarrow \kappa_2$, where $\kappa_k$ is the refinement for $k$ and $\kappa_2$ the refinement for the body of \lstinline{sum}.
+As the body is again an \lstinline{if}-expression we generate two constraints in step 2.
+Let us consider the \lstinline{then}-branch first:
+\begin{align}
+    \label{algn:sum-then}
+    \text{\lstinline|sum|}: k: \kappa_k \rightarrow \kappa_2; k: \kappa_k; k < 0 \vdash \{\nu = 0\} <: \kappa_2
+\end{align}
+Like in the case for \lstinline{max} we added the branch condition to the environment.
+Also we added the type of \lstinline{sum} to the environment since the function is recursive.
+For the \lstinline{else}-branch we first look at the recursive call.
+\begin{align}
+    \label{algn:s}
+    \text{\lstinline|sum|}: k: \kappa_k \rightarrow \kappa_2; k: \kappa_k; \neg(k < 0) \vdash \{\nu = k - 1\} <: \kappa_k
+\end{align}
+This constraint forces the argument $k - 1$ for the call of \lstinline{sum} to be a member of the yet unknown type of the argument.
+For the variable $s$ we have to replace the paramater $k$ in $\kappa_2$ by the actual argument $k - 1$ of this call.
+So we get:
+\begin{align}
+    \label{algn:sum-in}
+    \text{\lstinline|sum|}: k: \kappa_k \rightarrow \kappa_2; k: \kappa_k; \neg(k < 0); s: [k-1/k]\kappa_2 \vdash \{\nu = s + k\} <: \kappa_2
+\end{align}
+Step 3 searches for the strongest conjunction of qualifiers for $\kappa_k$ and $\kappa_2$.
+If we look at constraint~(\ref{algn:s}) we must set $\kappa_k$ to true since $k - 1$ can be negative, zero or positive.
+For $\kappa_2$ we use $0 \le \nu \land k \le \nu$.
+We observe that constraint~(\ref{algn:sum-then}) is trivially satisfied.
+The binding for $s$ in the constraint~(\ref{algn:sum-in}) simplifies to $s: 0 \le \nu \land k - 1 \le \nu$.
+So we have to show that $\neg(k < 0) \land 0 \le s \land k - 1 \le s \land \nu = s + k$ implies $0 \le \nu \land k \le \nu$.
+The statement is valid since $k$ and $s$ are both non-negative.
+The essential point of this example is that recursion is introduce through the variable $s$ which stores the result of the recursive call.
+Overall we get:
+\begin{center}
+    \lstinline{sum} :: $k:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land k \land \nu \}$
+\end{center}
+
+\subsubsection{Higher-Order Functions}
+As an example for a higher-order function we look at \lstinline{foldn} (Listing~\ref{lst:exmpl}).
+We want to show that the first argument of $f$ is always between $0$ and $n$.
+In step 1 we first get the polymorphic type for \lstinline{foldn}
+$\forall \alpha.\,n:$ \lstinline{int} $\rightarrow b: \alpha \rightarrow f:($ \lstinline{int} $\rightarrow \alpha \rightarrow \alpha) \rightarrow \alpha$.
+This yields the template
+$\forall \alpha.\,n: \kappa_n \rightarrow b: \alpha \rightarrow f:(\kappa_3 \rightarrow \alpha \rightarrow \alpha) \rightarrow \alpha$.
+For \lstinline{loop} we get the template $i: \kappa_i \rightarrow c: \alpha \rightarrow \alpha$.
+In step 2 we examine the two interesting cases for \lstinline{loop}:
+\begin{align}
+    \label{algn:loop-i}
+    \dots; i: \kappa_i; i < n \vdash \{\nu = i + 1 \} <: \kappa_i
+\end{align}
+This constraint ensures that the argument $i + 1$ to \lstinline{loop} is a member of the argument type $\kappa_i$.
+Similarly the second constraint forces the argument $i$ to be of the type $\kappa_3$ of the first argument of \lstinline{f}.
+\begin{align}
+    \label{algn:f}
+    \dots; i: \kappa_i; i < n \vdash \{\nu = i \} <: \kappa_3
+\end{align}
+For the call of \lstinline{loop 0} we obtain
+\begin{align}
+    \label{algn:loop-0}
+    \dots \vdash \{\nu = 0 \} <: \kappa_i
+\end{align}
+which ensures that $0$ is a member of $\kappa_i$.
+In step 3 $\kappa_n$ is assigned to true since we can call \lstinline{foldn} with any $n$.
+For $\kappa_i$ we obtain $0 \le \nu$ which trivially satisfies constraints~(\ref{algn:loop-i}) and (\ref{algn:loop-0}).
+By plugging this in constraint~(\ref{algn:f}) we get $0 \le \nu \land \nu < n$ for $\kappa_3$.
+All in all we have:
+\begin{center}
+    \lstinline{foldn} :: $\forall \alpha.\,n:$ \lstinline{int} $\rightarrow b: \alpha \rightarrow f:(\{0 \le \nu \land \nu < n\} \rightarrow \alpha \rightarrow \alpha) \rightarrow \alpha$
+\end{center}
+
+\subsubsection{Polymorhism and Array Bounds Checking}
+
+We assume a type \lstinline{intarray} of arrays over integers and a function \lstinline{len} which yields the number of elements in the array.
+The array access function \lstinline{sub} has the type
+$a:$ \lstinline{intarray} $\rightarrow j: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu < $ \lstinline{len} $a\} \rightarrow$ \lstinline{int}.
+The function \lstinline{arraymax} from Listing~(\ref{lst:exmpl}) uses the above functions to determine the maximum of 0 and the elements of an array.
+We show that the array access is safe and that \lstinline{arraymax} returns a value greater or equal to 0.
+Step 1 produces the templates $a:$ \lstinline{intarray} $\rightarrow \kappa_4$ for \lstinline{arraymax} and $l: \kappa_l \rightarrow m: \kappa_m \rightarrow \kappa_5$ for \lstinline{am}.
+Additionally we get $\kappa_6$ as instantiation for $\alpha$ in the template of \lstinline{foldn}.
+Step 2 generates for \lstinline{sub l a}:
+\begin{align}
+    l: \kappa_l; m: \kappa_m \vdash \{\nu = l\} <: \{0 \le \nu \land \nu < \text{\lstinline|len| } a\}
+\end{align}
+For \lstinline{max (sub l a) m} we get which constraints the body type of \lstinline{am}:
+\begin{align}
+    l: \kappa_l; m: \kappa_m \vdash \{\text{\lstinline|sub l a|} \le \nu \land m \le \nu \} <: \kappa_5
+\end{align}
+We obtain for \lstinline{foldn (len a) 0}:
+\begin{align}
+    \dots \vdash \{ \nu = 0 \} <: \kappa_6
+\end{align}
+For \lstinline{foldn (len a) 0 am} we have:
+\begin{align}
+    \dots \vdash l: \kappa_l \rightarrow m: \kappa_m \rightarrow \kappa_5 <: \{0 \le \nu \land \nu < \text{\lstinline|len| } a\} \rightarrow \kappa_5 \rightarrow \kappa_6
+\end{align}
+This constraint reduces to
+\begin{align}
+    & \dots \vdash \{0 \le \nu \land \nu < \text{\lstinline|len| } a\} <: \kappa_l \\
+    & \dots \vdash \kappa_6 <: \kappa_m \\
+    & \dots \vdash \kappa_5 <: \kappa_6
+\end{align}
+We ensure that the body type of the \lstinline{foldn} is a subtype of the body type of \lstinline{arraymax} by
+\begin{align}
+    \dots \vdash \kappa_6 <: \kappa_4
+\end{align}
+Step 3 uses for $\kappa_m, \kappa_4, \kappa_5$ and $\kappa_6$ the qualifier $0 \le \nu$.
+$\kappa_l$ is assigned to $0 \le \nu \land \nu < \text{\lstinline|len| } a$.
+Therefore we obtain:
+\begin{center}
+    \lstinline{arraymax} :: \lstinline{intarray} $\rightarrow \{ \nu:$ \lstinline{int} $\mid 0 \le \nu \}$
+\end{center}
+
+
+
+\subsection{Liquid Type Checking}
+
+The liquid type checking is formalized in a $\lambda$-calculus with \lstinline{if}- and \lstinline{let}-expressions, recursive funtions and polymorphism.
+Intuitively a liquid type $T$ is well-formed under the environment $\Gamma$ ($\Gamma \vdash T$) if the free variables occuring in the refinements of $T$ are bound in $\Gamma$.
+The environment $\Gamma$ consists of type bindings ($x: T$) and predicates.
+For example we can say that $\{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu$ is well-formed under $x:$ \lstinline{int}; $y:$ \lstinline{int}.
+In addition there is also a decidable subtype judgment $\Gamma \vdash T_1 <: T2$ stating that $T_1$ is a subtype of $T_2$ under environment $\Gamma$.
+As example consider $x:$ \lstinline{int}; $y:$ \lstinline{int}; $(x > y) \vdash \{\nu = x \} <: x \le \nu \land y \le \nu$
+The liquid type judgement $\Gamma \vdash_{\mathbb{Q}} e: T$ says that the expression $e$ has type $T$ under environment $\Gamma$ if one considers the logical qualifiers $\mathbb{Q}$.
+For example we can show $\Gamma \vdash_{\mathbb{Q}}$ \lstinline{let} $s$ \lstinline{= sum (k - 1) in s + k} $: T$ if $T$ is well-formed under $\Gamma$ and the refinements of $T$ consists of conjunctions over logical qualifiers in $\mathbb{Q}^\star$, plus
+$\Gamma \vdash_{\mathbb{Q}}$ \lstinline{sum (k - 1)} $:T_1$ and $\Gamma; x: T_1 \vdash_{\mathbb{Q}}$ \lstinline{s + k} $: T$.
+Soundness of this liquid type checking is proven in two steps.
+Firstly, one defines an exact type system $\Gamma \vdash e: T$ using an undecidable subtype judgment.
+Then soundness is obtained using the following theorems, where $\succ$ is the single evaluation step relation:
+\begin{enumerate}
+    \label{thm:sound}
+    \item (Overapproximation) If $\Gamma \vdash_{\mathbb{Q}} e: T$ then $\Gamma \vdash e: T$.
+    \item (Preservation) If $\Gamma \vdash e: T$ and $e \succ e'$ then $\Gamma \vdash e': T$.
+    \item (Progress) If $\emptyset \vdash e: T$ and $e$ is not a value then $\exists e'. e \succ e'$.
+\end{enumerate}
+
+
+\subsection{Liquid Type Inference}
+
+The 3 steps of the type inference can be implemented in the formal setting.
+The examples given in Subsection~\ref{subsec:exmpl} illustrate some cases of this algorithm.
+Also for this algorithm called \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) one can show some theorems:
+\begin{enumerate}
+    \item \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) terminates.
+    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q} = T$ then $\Gamma \vdash_{\mathbb{Q}} e: T$.
+    \item If \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) returns no type then $\nexists T.\, \Gamma \vdash_{\mathbb{Q}} e: T$.
+\end{enumerate}
+
+Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q} = T$ then the evalution of $e$ won't get stuck.
+
+\subsection{Experiments}
+
+\begin{figure}
+    %\includegraphics[width=0.9\textwidth]{experiments.png}
+    \caption{Experimental Results}
+    \label{fig:exp}
+\end{figure}
+
+In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
+It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
+To allow array bounds checking the qualifiers are of the form $\nu \bowtie X$ where $\bowtie \in \{<, \le, =, \neq, \geq, >\}$ and $X \in \{0, \star,$ \lstinline{len} $\star$\}.
+The results are summarized in Figure~\ref{fig:exp}.
+The columns for \textbf{DML} and \textbf{DSolve} state how many lines respectively characters of manual annotations are need.
+We observe that in most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. qualifiers.
+If qualifiers are missing the infered types help to identify which ones should be added.
+Compared to the \textbf{DML} project the impact is very big.
+Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} only needs 1\% of lines and characters.
+
+
+
+\section{Paper 3: Refinement Types in Haskell}
+
+\subsection{Introduction and Motivating Examples}
+\subsubsection{Refinement Types, Briefly}
+Refinement types, as the name suggests, refine types with predicates to encode
+values that can inhabit these types.  For example,
+\begin{lstlisting}[abovecaptionskip=-\medskipamount]
+    type Pos = { v:Int | v >  0 }
+    type Nat = { v:Int | v >= 0 }
+\end{lstlisting}
+describe positive and non-negative integers, respectively.  We can then encode
+\emph{pre-} and \emph{post-}conditions for functions using these refined types,
+for example
+\begin{lstlisting}[language=haskell,abovecaptionskip=-\medskipamount]
+    div :: n:Nat -> d:Pos -> { v:Nat | v < n } 
+    (+) :: x:Int -> y:Int -> { v:Int | v = x + y }
+\end{lstlisting}
+which \emph{requires} (for example) that the inputs of \texttt{div} are
+respectively non-negative and positive, and \emph{ensures} that the output of
+\texttt{div} is less than the first input \texttt{n}.
+
+\subsubsection{Standard Refinement Types: From Subtyping to VC}
+Consider programs in Listing~\ref{list:good-bad}.
+\begin{lstlisting}[caption={Simple Example},float,captionpos=t,label={list:good-bad},language=haskell,abovecaptionskip=-\medskipamount]
+    good :: Nat-> Nat -> Int
+    good x y = let z = y + 1 in x `div` z
+
+    bad :: Nat -> Nat -> Int
+    bad x y = x `div` y
+\end{lstlisting}
+To anaylize \texttt{bad}, the refinement type system will create a subtyping
+query for the second argument to \texttt{div},
+\begin{align*}
+    x:\{x\geq0\}, y:\{y\geq0\}\vdash\{v\geq0\}\preceq\{v>0\}
+\end{align*}
+which will get translated into the following \emph{verification condition}
+(VC),
+\begin{align*}
+    (x\geq0)\wedge(y\geq0)\implies(v\geq0)\implies(v>0)
+\end{align*}
+which a SMT solvers will reject as invalid.  Thus a refinement system will
+reject \texttt{bad}.
+
+On the other hand, the refinement system will accept \texttt{good}.  The
+corresponding subtyping query is
+\begin{align*}
+    x:\{x>0\}, y:\{y\geq0\},z:\{z=y+1\}\vdash\{v=y+1\}\preceq\{v>0\}
+\end{align*}
+which reduces to a valid VC
+\begin{align*}
+    (x\geq0)\wedge(y\geq0)\wedge(z=y+1)\implies(v=y+1)\implies(v>0)
+\end{align*}
+
+\subsubsection{Lazy Evaluation Makes VCs Unsound}
+Consider Listing~\ref{list:counter}.  
+\begin{lstlisting}[caption={Lazy evaluation breaks VC},float,captionpos=t,label={list:counter},language=haskell,abovecaptionskip=-\medskipamount]
+    diverge :: Int -> { v:Nat | false } 
+    diverge n = diverge n
+
+    explode :: Int -> Int
+    explode x = let { n = diverge 1; y = 0 }
+                 in x `div` y
+\end{lstlisting}
+Under lazy evaluation, it will result in division by zero (but not under eager
+evaluation).  To see why, consider that the refinement type system will check
+that \texttt{y} has type \texttt{Pos} at the call to \texttt{div}, i.e.
+\begin{align*}
+    n:\{\mathtt{false}\},y:\{y=0\}\vdash\{v=0\}\preceq\{v>0\}
+\end{align*}
+which reduces to VC
+\begin{align*}
+    \mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)
+\end{align*}
+which is valid because of contradiction in the antecedent.  Under eager
+evaluation, this is a sound VC; \texttt{div} never gets executed since
+\texttt{diverge} doesn't terminate i.e. doesn't produce a value (the
+\texttt{false} in the type signature of \texttt{diverge} basically tells this).
+Under lazy evaluation, since the result of \texttt{n} is not needed,
+\texttt{diverge} will not be computed thus resulting in a division by zero and
+making the VC unsound.
+
+\subsubsection{Solutions, Challenges, and Key Idea}
+There are two natural solutions to the above problem:
+\begin{itemize}
+    \item Only consider variables which are guaranteed to have values e.g.
+        those under pattern matching, \texttt{seq}, or strictness annotations.
+        This approach is sound but imprecise.
+    \item Reason \emph{explicitly} about diverging terms within the refinement
+        logic.  Unfortunately, while this approach is sound and precise, it is
+        not clear how to use the existing SMT machinery to do this.
+\end{itemize}
+The paper proposes a method to reason \emph{implicitly} about divergence using
+stratified type system.
+
+
+\subsection{Verification With Stratified Types}
+\subsubsection{Implicit Reasoning: Lazy Evaluation}
+Formally, the aforementioned type system is \emph{stratified} into types which
+are inhabited by:
+\begin{itemize}
+    \item Potentially diverging terms, called Div-type and written as $\tau$.
+    \item Terms that are guaranteed to reduce into Haskell values in WHNF (Weak
+        Head Normal Form), in finite steps.  These terms are said to have
+        Wnf-types (written as $\tau^{\downarrow}$).  Note that Wnf-type can
+        contain infinite values e.g. list with infinite length such as
+        \texttt{0 : repeat 0}.
+    \item Terms that reduce into finite values, called Fin-type and written as
+        $\tau^{\Downarrow}$.
+\end{itemize}
+The key idea here is that if a variable may diverge (i.e. with type that
+belongs to Div types), the constraint for it is omitted in the VC.  Formally,
+let $B$ be a basic labelled type.  Then it will be translated into VC as
+follows:
+\begin{align}
+    (|x:\{v:B|r\}|)=
+    \left\{
+        \begin{array}{ll}
+            \texttt{true}&\mbox{if }B\mbox{ is a Div type}\\
+            r[x/v]&\mbox{otherwise}
+        \end{array}
+    \right.
+\end{align}
+
+\subsubsection{VC and Partial Correctness}
+The preceeding refinement type system retain the Hoare notion of "partial
+correctness", which means that if a function terminates, then its pre- and
+post-conditions hold.  Thus it can verify programs where all terms are of Div
+types.  The following example illustrates this point.
+\begin{lstlisting}[caption={Partial Correctness},float,captionpos=t,label={list:partial-correctness},language=haskell,abovecaptionskip=-\medskipamount]
+    example :: Int -> Int
+    example n = let x = collatz n in 10 `div` x
+
+    collatz :: Int -> { v:Int | v = 1 }
+    collatz n
+        | n == 1    = 1
+        | even n    = collatz (n / 2)
+        | otherwise = collatz (3*n + 1)
+\end{lstlisting}
+
+It is unclear whether \texttt{collatz} terminates, but we know that its output
+is a Div \texttt{Int} with value equal to $1$.  Thus we have the subtyping
+query
+\begin{align*}
+    x:\{v:Int|v=1\}\vdash\{v=1\}\preceq\{v>0\}
+\end{align*}
+yielding the valid VC
+\begin{align*}
+    \mathtt{true}\implies(v=1)\implies(v>0)
+\end{align*}
+thereby verifying \texttt{example}.
+
+\subsubsection{Improving Precision by Forcing Evaluation}
+If all the terms have Div types then the verifier cannot make any assumption
+about the context in which a term evaluates.  This leads to a drastic loss of
+precision.  Consider the call to \texttt{div} in
+Listing~\ref{list:loss-of-precision}, which obviously safe, but the system
+would reject it as it yiels the subtyping query
+\begin{align*}
+    x:\{x:Int|v=1\},y:\{y:Int|y>x\}\vdash\{v>x\}\preceq\{v>0\}
+\end{align*}
+and invalid VC
+\begin{align*}
+    \mathtt{true}\implies(v>x)\implies(v>0)
+\end{align*}
+since \texttt{x} is a Div type.
+\begin{lstlisting}[caption={Loss of Precision},float,captionpos=t,label={list:loss-of-precision},language=haskell,abovecaptionskip=-\medskipamount]
+    ex = let { x = 1; y = inc x } in 10 `div` y
+
+    inc :: z:Int -> { v:Int | v > z }
+    inc = \z -> z + 1
+\end{lstlisting}
+
+This problem can be solved by forcing the evaluation of \texttt{x}, either by
+\texttt{seq} or the strictness annotation, thus changing the previous subtyping
+query
+\begin{align*}
+    x:\{x:Int^{\downarrow}|v=1\},y:\{y:Int|y>x\}\vdash\{v>x\}\preceq\{v>0\}
+\end{align*}
+and valid VC
+\begin{align*}
+    (x=1)\implies(v>x)\implies(v>0)
+\end{align*}
+which the system would gladly verify.
+
+\subsubsection{Improving Precision by Termination}
+While the forcing evaluation leads to better precision, it requires program
+rewriting which could be cumbersome.  Another approach is to use a termination
+analysis to aggresively assign terminating expressions Fin types.  Returning to
+Listing~\ref{list:loss-of-precision}, since term \texttt{1} obviously
+terminates, we can type \texttt{x} as $Int^{\Downarrow}$, which yiels the
+subtyping query
+\begin{align*}
+    x:\{x:Int^{\Downarrow}|v=1\},y:\{y:Int|y>x\}\vdash\{v>x\}\preceq\{v>0\}
+\end{align*}
+and valid VC
+\begin{align*}
+    (x=1)\implies(v>x)\implies(v>0)
+\end{align*}
+
+\subsubsection{Verifying Termination With Refinements}
+\begin{lstlisting}[caption={Verifying Termination},float,captionpos=t,label={list:termination-check},language=haskell,abovecaptionskip=-\medskipamount]
+    ex2 = let { x = fun 9; y = inc x } in 10 `div` y
+
+    fun :: Nat -> { v:Int | v = 1 }
+    fun n = if n == 0 then 1 else f (n-1)
+\end{lstlisting}
+How to verify termination for recursive functions?  One approach is to show
+that each recursive call is made with arguments of a strictly smaller size,
+where size itself is a well-founded metric such as natural numbers.  For
+example, the system typecheck the body of \texttt{fun} in
+Listing~\ref{list:termination-check} inside environtment
+\begin{align*}
+    x:Nat^{\Downarrow}, \mathtt{fun}:\{n':Nat^{\Downarrow}|n'<n\}\rightarrow\{v=1\}
+\end{align*}
+where the type of \texttt{fun} is weaken to stipulate that it only be
+recursively called with \texttt{Nat} values $n'$ that are strictly less than
+the current parameter $n$.  This generates the valid VC
+\begin{align*}
+    (0\leq n)\wedge\neg(0=n)\implies(v=n-1)\implies(0\leq v<n)
+\end{align*}
+
+Since (potentially) non-terminating variables can appear in the refinement $r$,
+we exclude diverging refinements from types.  In particular, a refinement type
+$\{v:B|r\}$ if well formed if and only if $r$ has type $Bool^{\Downarrow}$
+
+\subsubsection{Measures}
+To describe properties of algebraic data types, the paper uses \emph{measures}
+instead of integer and boolean expressions.  For example, the measure
+\texttt{emp}
+\begin{lstlisting}[abovecaptionskip=-\medskipamount]
+    measure emp :: [Int] -> Bool
+        emp []      = true
+        emp (x:xs)  = false 
+\end{lstlisting}
+checks whether a list of \texttt{Int}s is empty.  As shown here, a measure
+consists of a set of equations with simple pattern on the left hand side.  On
+the other hand, the right hand sides contain refinement expressions $r$.  With
+the above definition of \texttt{emp}, it is straightforward to show that
+\begin{align*}
+    \mathtt{[1,2,3]}::\{v:\mathtt{[Int]}|\mathtt{not (emp v)}\}
+\end{align*}
+
+How to reason about measures in the context of refinement types?  One approach
+that is both precise and efficient is by translating each equation in a measure
+into refined types for the corresponding data constructor.  Thus for list and
+the \texttt{emp} measure, we have
+\begin{lstlisting}[abovecaptionskip=-\medskipamount]
+    []  :: { v:[Int] | emp v = true }
+    :   :: x:Int -> xs:[Int] -> { v:[Int] | emp v = false } 
+\end{lstlisting}
+This way, each time a list value is constructed, its type carries over its
+emptiness information.  Furthermore, each time a list value is pattern-matched,
+its emptiness information can be used to improve precision.
+
+Finally, if a type has multiple measures, it is refined with the conjunction of
+each measures.  For example, the \texttt{len} measure can be used to compute
+the length of a list
+\begin{lstlisting}[abovecaptionskip=-\medskipamount]
+    measure len :: [Int] -> Int
+        len []      = 0
+        len (x:xs)  = 1 + len xs 
+\end{lstlisting}
+\begin{lstlisting}[abovecaptionskip=-\medskipamount]
+    []  :: { v:[Int] | len v = 0 }
+    :   :: x:Int -> xs:[Int] -> { v:[Int] | len v = 1 + (len xs) } 
+\end{lstlisting}
+Thus the final type for list data constructors will be as follows.
+\begin{lstlisting}[abovecaptionskip=-\medskipamount]
+    []  :: { v:[Int] | emp v = true && len v = 0 }
+    :   :: x:Int -> xs:[Int] -> 
+           { v:[Int] | emp v = false && len v = 1 + (len xs) } 
+\end{lstlisting}
+
+
+\subsection{Conclusions}
+This paper made two important contributions.  First, it shows that the standard
+techniques to generate VCs from refinement subtyping queries is unsound under
+lazy evaluation.  Second, it presented a solution that addresses the
+unsoundness by using a stratified type system which consists of types that are
+inhabited by potentially diverging terms, types that must reduce to a Haskell
+value, and types that must reduce to a finite value.  
+
+While the approach presented in the paper works well in practice, the authors
+admitted that from theoretical point of view, it felt unsatisfying since it
+relies critically on proving termination.  It felt unsatisfying since adding
+divergence shouldn't break a safety proof.  Nevertheless, the solution
+presented in the paper are constrained by current available two-valued logic SMT
+machinery; improvements might need a three-valued logic SMT to explicitly
+handle divergence and thus will rely less on proving terminations.
+
+
+%%
+%% Bibliography
+%%
+
+%% Either use bibtex (recommended),
+
+\cite{*}
+\bibliography{main}
+
+%% .. or use the thebibliography environment explicitely
+
+
+
+\end{document}

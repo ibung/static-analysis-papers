@@ -6,3 +6,10 @@
 *.synctex.gz(busy)
 *.vtc
 *.synctex.gz
+
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+
+*.swp

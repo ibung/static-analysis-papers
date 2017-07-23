@@ -13,3 +13,8 @@
 *.fdb_latexmk
 
 *.swp
+
+*.nav
+*.snm
+*.toc
+*.vrb

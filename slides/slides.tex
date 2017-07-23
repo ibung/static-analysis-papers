@@ -1,0 +1,105 @@
+\documentclass[pdf]{beamer}
+\mode<presentation>{\usetheme{Warsaw}}
+\usepackage{listings}
+
+%% preamble
+\title{Advanced Type-based Analysis}
+\subtitle{Summary of Selected Papers}
+\author{Nikita Ziuzin \\
+        Joachim Bard \\
+        Hizbullah Abdul Aziz}
+
+\AtBeginSection[]
+{
+  \begin{frame}{Outline}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+\begin{document}
+\begin{frame}
+  \titlepage
+\end{frame}
+
+
+\section{Dependent Types}
+
+\section{Refinement Types Under Eager Evaluation}
+
+\section{Refinement Types Under Lazy Evaluation}
+\begin{frame}
+  \frametitle{Lazy Evaluation}
+  \begin{itemize}
+    \item Only do computation when it is needed i.e. call-by-need
+    \item Lazy evaluation makes previous approach on refinement types unsound
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Example}
+  Given these ..
+  \begin{lstlisting}[language=haskell]
+type Pos = { v:Int | v >  0 }
+type Nat = { v:Int | v >= 0 }
+
+div :: n:Nat -> d:Pos -> { v:Nat | v < n } 
+(+) :: x:Int -> y:Int -> { v:Int | v = x + y }
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Example}
+  .. under lazy evaluation, previous approach will fail on this example:
+  \begin{lstlisting}[language=haskell]
+diverge :: Int -> { v:Nat | false } 
+
+explode :: Int -> Int
+explode x = let n = diverge 1 in 
+            let y = 0 in 
+            x `div` y
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Why?}
+  When checking the type of $y$, the typechecker will generate this constraint ..
+  $$\mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)$$
+  .. which any SMT solver will accept.
+  \begin{itemize}
+    \item This is sound under eager evaluation, since evaluation never reaches call to $div$,
+    \item but since $n$ is not needed, division by zero will still occur under lazy evaluation.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Idea}
+  Label binders as potentially diverging; for these, we omit them in the
+  constraint.  Returning to our previous example, our constraint becomes ..
+  $$\mathtt{true}\wedge(y=0)\implies(v=0)\implies(v>0)$$
+  .. which is now becomes invalid.
+\end{frame}
+
+\begin{frame}
+  \frametitle{Solution}
+  Stratified type system consisting of those who may diverge and those who may not.
+  \begin{itemize}
+    \item At first, all binders is labeled as potentially diverging.  This is
+      sound but very imprecise!
+    \item Then use termination analysis to determine which binders actually
+      terminate, thus increasing precision.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Implementation and Result}
+  Implemented in LIQUIDHASKELL, an SMT-based verifier for Haskell and evaluated
+  on Haskell standard libraries.  The result:
+  \begin{itemize}
+    \item Succesfully prove that $96\%$ of recursive functions actually terminate.
+    \item Needs only $1$ line of additional annotation per 100 lines of code.
+  \end{itemize}
+\end{frame}
+
+
+\end{document}
+        

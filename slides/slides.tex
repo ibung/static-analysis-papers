@@ -126,9 +126,9 @@
 \end{frame}
 
 \begin{frame}[fragile]{Example}
-  \begin{lstlisting}[language=ML]
+  \begin{verbatim}
 let max x y = if x > y then x else y
-  \end{lstlisting}
+  \end{verbatim}
   Perform standard type inference:
   \begin{itemize}
     \item $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int}
@@ -138,9 +138,9 @@ let max x y = if x > y then x else y
 \end{frame}
 
 \begin{frame}[fragile]{Example}
-  \begin{lstlisting}[language=ML]
+  \begin{verbatim}
 let max x y = if x > y then x else y
-  \end{lstlisting}
+  \end{verbatim}
   Template: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
   \begin{itemize}
     \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$

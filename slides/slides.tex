@@ -111,11 +111,13 @@
   \end{itemize}
 \end{frame}
 
+
 \section{Liquid Types}
+
 \begin{frame}{Liquid Types}
   \begin{itemize}
-    \item Infer dependent types automatically.
-    \item Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction).
+    \item Infer dependent types automatically
+    \item Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction)
     \item E.g. $\{\nu:$ \texttt{int} $\mid \nu < x \land \neg(\nu < y)\}$
   \end{itemize}
 \end{frame}
@@ -123,9 +125,9 @@
 \begin{frame}{Algorithm}
   The algorithm has 3 steps:
   \begin{itemize}
-    \item[1)] Generate templates using standard type inference.
-    \item[2)] Generate subtype constraints according to the syntax.
-    \item[3)] Solve the constraints by translating them into a decidable logic.
+    \item[1)] Generate templates using standard type inference
+    \item[2)] Generate subtype constraints according to the syntax
+    \item[3)] Solve the constraints by translating them into a decidable logic
   \end{itemize}
 \end{frame}
 
@@ -152,8 +154,8 @@ let max x y = if x > y then x else y
   \end{itemize}
   Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
   \begin{itemize}
-    \item No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$.
-    \item \texttt{max} can be called with arbitrary integers.
+    \item No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$
+    \item \texttt{max} can be called with arbitrary integers
   \end{itemize}
 \end{frame}
 
@@ -175,7 +177,7 @@ let max x y = if x > y then x else y
 
 \begin{frame}{Evaluation}
   \begin{itemize}
-    \item Implemented in \textbf{DSolve}.
+    \item Implemented in \textbf{DSolve}
     \item Number of annotated lines compared to the \textbf{DML} project:
   \end{itemize}
   \begin{table}
@@ -185,8 +187,9 @@ let max x y = if x > y then x else y
       lines & 17\%         & $< 1$\%
     \end{tabular}
   \end{table}
-  Retain benefits from \textbf{DML} without needing many annotations.
+  Retain benefits from \textbf{DML} without needing many annotations
 \end{frame}
+
 
 \section{Refinement Types For Haskell}
 

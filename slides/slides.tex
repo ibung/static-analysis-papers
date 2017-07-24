@@ -1,12 +1,13 @@
 \documentclass[pdf]{beamer}
 \mode<presentation>{\usetheme{Warsaw}}
 \usepackage{listings}
+\usepackage{amsmath, amssymb}
 
 %% preamble
 \title{Advanced Type-based Analysis}
 \subtitle{Summary of Selected Papers}
-\author{Nikita Ziuzin \\
-        Joachim Bard \\
+\author[Nikita Ziuzin, Joachim Bard, Hizbullah Abdul Aziz]{Nikita Ziuzin\\
+        Joachim Bard\\
         Hizbullah Abdul Aziz}
 
 \AtBeginSection[]
@@ -133,7 +134,82 @@
   \end{itemize}
 \end{frame}
 
-\section{Refinement Types Under Eager Evaluation}
+\section{Liquid Types}
+\begin{frame}{Liquid Types}
+  \begin{itemize}
+    \item Infer dependent types automatically.
+    \item Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction).
+    \item E.g. $\{\nu:$ \lstinline{int} $\mid \kappa\}$, where $\kappa \in \{\bigwedge p \mid p \in P \cup \neg P\}$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Algorithm}
+  The algorithm has 3 steps:
+  \begin{itemize}
+    \item[1)] Generate templates using standard type inference.
+    \item[2)] Generate subtype constraints according to the syntax.
+    \item[3)] Solve the constraints using fixpoint iteration.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+  \begin{lstlisting}
+let max x y = if x > y then x else y
+  \end{lstlisting}
+  Perform standard type inference:
+  \begin{itemize}
+    \item $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int}
+    \item $x: \{\nu:$ \lstinline{int} $\mid \kappa_x\} \rightarrow y: \{\nu:$ \lstinline{int} $\mid \kappa_y\} \rightarrow \{\nu:$ \lstinline{int} $\mid \kappa\}$
+    \item or short: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+  \begin{lstlisting}
+let max x y = if x > y then x else y
+  \end{lstlisting}
+  Template: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
+  \begin{itemize}
+    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
+    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\nu = y \} <: \kappa$
+  \end{itemize}
+  Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
+  \begin{itemize}
+    \item No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Example}
+  \begin{itemize}
+    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
+    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\nu = y \} <: \kappa$
+  \end{itemize}
+  Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
+  \begin{itemize}
+    \item[1)] $x > y \land \nu = x \Rightarrow \kappa$\\
+      yields $\kappa := x \le \nu \land x = \nu \land y < \nu \land y \le \nu$
+    \item[2)] $\neg(x > y) \land \nu = y \Rightarrow \kappa$\\
+      yields $\kappa := x \le \nu \land y \le \nu \land y = \nu$
+  \end{itemize}
+  $\kappa := x \le \nu \land y \le \nu$ for both constraints\\
+  \lstinline{max} :: $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu\}$
+\end{frame}
+
+\begin{frame}{Evaluation}
+  \begin{itemize}
+    \item Implemented in \textbf{DSolve}.
+    \item Number of annotated lines compared to the \textbf{DML} project.
+  \end{itemize}
+  \begin{table}
+    \begin{tabular}{l|r|r}
+            & \textbf{DML} & \textbf{DSolve}\\
+      \hline
+      lines & 17\%         & $< 1$\%
+    \end{tabular}
+  \end{table}
+  $P := \{\nu \bowtie X \mid \bowtie \in \{<, \le, =, \neq, \geq, >\}$ and $X \in \{0, \star,$ \lstinline{len} $\star\}\}$,\\
+  where $\star$ can be replaced by every variable.
+\end{frame}
 
 \section{Refinement Types Under Lazy Evaluation}
 

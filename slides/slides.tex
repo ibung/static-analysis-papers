@@ -143,7 +143,7 @@
   \begin{itemize}
     \item Infer dependent types automatically.
     \item Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction).
-    \item E.g. $\{\nu:$ \lstinline{int} $\mid \kappa\}$, where $\kappa \in \{\bigwedge p \mid p \in P \cup \neg P\}$
+    \item E.g. $\{\nu:$ \lstinline{int} $\mid \nu < x \land \neg(\nu < y)\}$
   \end{itemize}
 \end{frame}
 
@@ -157,7 +157,7 @@
 \end{frame}
 
 \begin{frame}[fragile]{Example}
-  \begin{lstlisting}
+  \begin{lstlisting}[language=ML]
 let max x y = if x > y then x else y
   \end{lstlisting}
   Perform standard type inference:
@@ -169,7 +169,7 @@ let max x y = if x > y then x else y
 \end{frame}
 
 \begin{frame}[fragile]{Example}
-  \begin{lstlisting}
+  \begin{lstlisting}[language=ML]
 let max x y = if x > y then x else y
   \end{lstlisting}
   Template: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
@@ -183,7 +183,7 @@ let max x y = if x > y then x else y
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Example}
+\begin{frame}{Example}
   \begin{itemize}
     \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
     \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\nu = y \} <: \kappa$
@@ -211,8 +211,6 @@ let max x y = if x > y then x else y
       lines & 17\%         & $< 1$\%
     \end{tabular}
   \end{table}
-  $P := \{\nu \bowtie X \mid \bowtie \in \{<, \le, =, \neq, \geq, >\}$ and $X \in \{0, \star,$ \lstinline{len} $\star\}\}$,\\
-  where $\star$ can be replaced by every variable.
 \end{frame}
 
 \section{Refinement Types For Haskell}

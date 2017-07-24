@@ -194,7 +194,7 @@ let max x y = if x > y then x else y
 
 \begin{frame}[fragile]
   \frametitle{Example}
-  Given these ..
+  Given these function and types:
   \begin{lstlisting}[language=haskell]
 type Pos = { v:Int | v >  0 }
 type Nat = { v:Int | v >= 0 }
@@ -206,22 +206,22 @@ div :: n:Nat -> d:Pos -> { v:Nat | v < n }
 
 \begin{frame}[fragile]
   \frametitle{Example}
-  .. under lazy evaluation, previous approach will fail on this example:
-  \begin{lstlisting}[language=haskell]
+  Under lazy evaluation, previous approach will fail on this example:
+  \begin{verbatim}
 diverge :: Int -> { v:Nat | false } 
 
 explode :: Int -> Int
 explode x = let n = diverge 1 in 
             let y = 0 in 
             x `div` y
-  \end{lstlisting}
+  \end{verbatim}
 \end{frame}
 
 \begin{frame}
   \frametitle{Why?}
-  When checking the type of $y$, the typechecker will generate this constraint ..
+  When checking the type of $y$, the typechecker will generate this constraint
   $$\mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)$$
-  .. which any SMT solver will accept.
+  which any SMT solver will accept.
   \begin{itemize}
     \item This is sound under eager evaluation, since evaluation never reaches call to $div$,
     \item but since $n$ is not needed, division by zero will still occur under lazy evaluation.
@@ -231,9 +231,9 @@ explode x = let n = diverge 1 in
 \begin{frame}
   \frametitle{Idea}
   Label binders as potentially diverging; for these, we omit them in the
-  constraint.  Returning to our previous example, our constraint becomes ..
+  constraint.  Returning to our previous example, our constraint becomes
   $$\mathtt{true}\wedge(y=0)\implies(v=0)\implies(v>0)$$
-  .. which is now becomes invalid.
+  which is now invalid.
 \end{frame}
 
 \begin{frame}

@@ -116,18 +116,18 @@
 
 \begin{frame}{Liquid Types}
   \begin{itemize}
-    \item Infer dependent types automatically
-    \item Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction)
-    \item E.g. $\{\nu:$ \texttt{int} $\mid \nu < x \land \neg(\nu < y)\}$
+    \item<+-> Infer dependent types automatically
+    \item<+-> Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction)
+    \item<+-> E.g. $\{\nu:$ \texttt{int} $\mid \nu < x \land \neg(\nu < y)\}$
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Algorithm}
   The algorithm has 3 steps:
   \begin{itemize}
-    \item[1)] Generate templates using standard type inference
-    \item[2)] Generate subtype constraints according to the syntax
-    \item[3)] Solve the constraints by translating them into a decidable logic
+    \item<+->[1)] Generate templates using standard type inference
+    \item<+->[2)] Generate subtype constraints according to the syntax
+    \item<+->[3)] Solve the constraints by translating them into a decidable logic
   \end{itemize}
 \end{frame}
 
@@ -135,11 +135,12 @@
   \begin{verbatim}
 let max x y = if x > y then x else y
   \end{verbatim}
+  \pause
   Perform standard type inference:
   \begin{itemize}
-    \item $x:$ \texttt{int} $\rightarrow y:$ \texttt{int} $\rightarrow$ \texttt{int}
-    \item $x: \{\nu:$ \texttt{int} $\mid \kappa_x\} \rightarrow y: \{\nu:$ \texttt{int} $\mid \kappa_y\} \rightarrow \{\nu:$ \texttt{int} $\mid \kappa\}$
-    \item or short: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
+    \item<+-> $x:$ \texttt{int} $\rightarrow y:$ \texttt{int} $\rightarrow$ \texttt{int}
+    \item<+-> $x: \{\nu:$ \texttt{int} $\mid \kappa_x\} \rightarrow y: \{\nu:$ \texttt{int} $\mid \kappa_y\} \rightarrow \{\nu:$ \texttt{int} $\mid \kappa\}$
+    \item<+-> or short: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
   \end{itemize}
 \end{frame}
 
@@ -148,46 +149,51 @@ let max x y = if x > y then x else y
 let max x y = if x > y then x else y
   \end{verbatim}
   Template: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
+  \pause
   \begin{itemize}
-    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = x \} <: \kappa$
-    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = y \} <: \kappa$
+    \item<+->[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = x \} <: \kappa$
+    \item<+->[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = y \} <: \kappa$
   \end{itemize}
-  Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
+  \uncover<+->{Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:}
   \begin{itemize}
-    \item No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$
-    \item \texttt{max} can be called with arbitrary integers
+    \item<+-> No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$
+    \item<+-> \texttt{max} can be called with arbitrary integers
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Example}
-  \begin{itemize}
-    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = x \} <: \kappa$
-    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = y \} <: \kappa$
-  \end{itemize}
   Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
   \begin{itemize}
-    \item[1)] $x > y \land \nu = x \Rightarrow \kappa$\\
-      yields $\kappa := x \le \nu \land x = \nu \land y < \nu \land y \le \nu$
-    \item[2)] $\neg(x > y) \land \nu = y \Rightarrow \kappa$\\
-      yields $\kappa := x \le \nu \land y \le \nu \land y = \nu$
+    \item<+->[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = x \} <: \kappa$
+      \begin{itemize}
+        \item<+-> $x > y \land \nu = x \Rightarrow \kappa$
+        \item<+-> $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$
+      \end{itemize}
+    \item<+->[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = y \} <: \kappa$
+      \begin{itemize}
+        \item<+-> $\neg(x > y) \land \nu = y \Rightarrow \kappa$
+        \item<+-> $\kappa := x \le \nu \land \neg(y < \nu) \land y \le \nu \land y = \nu$
+      \end{itemize}
   \end{itemize}
-  $\kappa := x \le \nu \land y \le \nu$ for both constraints\\
-  \texttt{max} :: $x:$ \texttt{int} $\rightarrow y:$ \texttt{int} $\rightarrow \{\nu:$ \texttt{int} $\mid x \le \nu \land y \le \nu\}$
+  \uncover<+->{$\kappa := x \le \nu \land y \le \nu$ for both constraints}\\
+  \vspace{3ex}
+  \uncover<+->{\texttt{max} :: $x:$ \texttt{int} $\rightarrow y:$ \texttt{int} $\rightarrow \{\nu:$ \texttt{int} $\mid x \le \nu \land y \le \nu\}$}
 \end{frame}
 
 \begin{frame}{Evaluation}
   \begin{itemize}
-    \item Implemented in \textbf{DSolve}
-    \item Number of annotated lines compared to the \textbf{DML} project:
+    \item<+-> Implemented in \textbf{DSolve}
+    \item<+-> Number of annotated lines compared to the \textbf{DML} project:
   \end{itemize}
+  \uncover<2->{%
   \begin{table}
     \begin{tabular}{l|r|r}
             & \textbf{DML} & \textbf{DSolve}\\
       \hline
       lines & 17\%         & $< 1$\%
     \end{tabular}
-  \end{table}
-  Retain benefits from \textbf{DML} without needing many annotations
+  \end{table}}
+  \uncover<+->{Retain benefits from \textbf{DML} without needing many annotations}
 \end{frame}
 
 

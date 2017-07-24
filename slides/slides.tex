@@ -116,7 +116,7 @@
   \begin{itemize}
     \item Infer dependent types automatically.
     \item Restrict refinements to conjunction of predicates and their negation (similar to predicate abstraction).
-    \item E.g. $\{\nu:$ \lstinline{int} $\mid \nu < x \land \neg(\nu < y)\}$
+    \item E.g. $\{\nu:$ \texttt{int} $\mid \nu < x \land \neg(\nu < y)\}$
   \end{itemize}
 \end{frame}
 
@@ -135,8 +135,8 @@ let max x y = if x > y then x else y
   \end{verbatim}
   Perform standard type inference:
   \begin{itemize}
-    \item $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int}
-    \item $x: \{\nu:$ \lstinline{int} $\mid \kappa_x\} \rightarrow y: \{\nu:$ \lstinline{int} $\mid \kappa_y\} \rightarrow \{\nu:$ \lstinline{int} $\mid \kappa\}$
+    \item $x:$ \texttt{int} $\rightarrow y:$ \texttt{int} $\rightarrow$ \texttt{int}
+    \item $x: \{\nu:$ \texttt{int} $\mid \kappa_x\} \rightarrow y: \{\nu:$ \texttt{int} $\mid \kappa_y\} \rightarrow \{\nu:$ \texttt{int} $\mid \kappa\}$
     \item or short: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
   \end{itemize}
 \end{frame}
@@ -147,19 +147,20 @@ let max x y = if x > y then x else y
   \end{verbatim}
   Template: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
   \begin{itemize}
-    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
-    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = y \} <: \kappa$
+    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = x \} <: \kappa$
+    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = y \} <: \kappa$
   \end{itemize}
   Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
   \begin{itemize}
-    \item No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$
+    \item No restrictions on $\kappa_x$ and $\kappa_y$, so $\kappa_x := \mathtt{true}$ and $\kappa_y := \mathtt{true}$.
+    \item \texttt{max} can be called with arbitrary integers.
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Example}
   \begin{itemize}
-    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
-    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = y \} <: \kappa$
+    \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = x \} <: \kappa$
+    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \texttt{int} $\mid \nu = y \} <: \kappa$
   \end{itemize}
   Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
   \begin{itemize}
@@ -169,7 +170,7 @@ let max x y = if x > y then x else y
       yields $\kappa := x \le \nu \land y \le \nu \land y = \nu$
   \end{itemize}
   $\kappa := x \le \nu \land y \le \nu$ for both constraints\\
-  \lstinline{max} :: $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu\}$
+  \texttt{max} :: $x:$ \texttt{int} $\rightarrow y:$ \texttt{int} $\rightarrow \{\nu:$ \texttt{int} $\mid x \le \nu \land y \le \nu\}$
 \end{frame}
 
 \begin{frame}{Evaluation}
@@ -184,7 +185,7 @@ let max x y = if x > y then x else y
       lines & 17\%         & $< 1$\%
     \end{tabular}
   \end{table}
-  Retain benefits from \textbf{DML} without needing many annotations
+  Retain benefits from \textbf{DML} without needing many annotations.
 \end{frame}
 
 \section{Refinement Types For Haskell}

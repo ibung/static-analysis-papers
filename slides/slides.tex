@@ -1,7 +1,7 @@
 \documentclass[pdf]{beamer}
 \mode<presentation>{\usetheme{Warsaw}}
 \usepackage{listings}
-\usepackage{amsmath, amssymb}
+\usepackage{amsmath, amssymb, mathtools}
 
 %% preamble
 \title{Advanced Type-based Analysis}
@@ -44,9 +44,7 @@
     \item $\mathit{List_A}(n)$ -- type of lists over a type $A$ with length $n$
     \item $\Pi n : \mathbb{N}.List_\mathbb{N}(n)$ -- type of function taking a
       natural number $n$ and returning a list of natural numbers with length
-      $n$ (dependent function type, dependent product).
-    \item $\Sigma a : A. B$ -- a pairing of $a$ with an element of $B$ where $a$
-      may be used to produce it (dependent sum).
+      $n$
     \item Dependent types in general allow for terms of any form to be used in
       type constructors, which makes type-checking undecidable
   \end{itemize}
@@ -72,54 +70,26 @@
       types
     \item $\mathit{List_\mathbb{N}(n)} \implies \texttt{nat list(n)}$
     \item $\Pi a: A.B \implies \texttt{\{a: atype\} btype}$
-    \item $\Sigma a: A.B \implies \texttt{[a : atype] btype}$
-    \item \texttt{nat = \{n int | n $\geq$ 0\}}
+    \item \texttt{nat $\vcentcolon=$ \{n int | n $\geq$ 0\}}
   \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-  \frametitle{Example: \texttt{reverse}}
+  \frametitle{Example: \texttt{rev}}
 
   \begin{verbatim}
-  fun reverse(l) = let
-    fun rev(nil, ys) = ys
-      | rev(x::xs, ys) = rev(xs, x::ys)
-    where rev <| {m:nat} {n:nat}
-      'a list(m) * 'a list(n) -> 'a list(m+n) in
-    rev(l, nil)
-  end
-  where reverse <| {n:nat} 'a list(n) -> 'a list(n)
-  \end{verbatim}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Constraint generation}
-  \begin{verbatim}
-  rev(nil, ys) = ys
-    where rev <| {m:nat} {n:nat}
-      'a list(m) * 'a list(n) -> 'a list(m+n)
+  fun rev(nil, ys) = ys
+    | rev(x::xs, ys) = rev(xs, x::ys)
+  where rev <| {m:nat} {n:nat}
+    'a list(m) * 'a list(n) -> 'a list(m+n)
   \end{verbatim}
 
   \begin{itemize}
-    \item Generated constraint: $\forall n : nat. \exists M : nat. \exists N :
-      nat. (M = 0 \land N = n \to M + N = n)$
+    \item Constraint for the first pattern-matching clause: $\forall n :
+      \mathbb{N}.  (0 + n = n)$
 
-    \item After simplification: $\forall n : nat. (0 + n = n)$
-  \end{itemize}
-\end{frame}
-
-\begin{frame}[fragile]
-  \frametitle{Constraint generation cont.}
-
-  \begin{verbatim}
-  rev(x::xs, ys) = rev(xs, x::ys)
-    where rev <| {m:nat} {n:nat}
-      'a list(m) * 'a list(n) -> 'a list(m+n)
-  \end{verbatim}
-
-  \begin{itemize}
-    \item Constraint:
-      $\forall m : nat. \forall n : nat.(m + 1) + n = m + (n + 1)$,
+    \item For the second: $\forall m, n : \mathbb{N}.(m + 1) + n = m + (n +
+      1)$
 
     \item Solving methods: Fourier-Motzkin, simplex, etc.
   \end{itemize}
@@ -132,9 +102,8 @@
     \item DML compiler avoids bound (tag) checks for lists of known length
     \item Set of benchmarks used, programs were extracted from SML stdlib with
       type annotations adjusted
-    \item Performance increase 10-70\%, average 30\%
-    \item Costs: type annotations took about 10-20\% of the code!
-    \item Can be improved?
+    \item Average speed up: 30\%
+    \item Costs: type annotations took about 17\% of the code!
   \end{itemize}
 \end{frame}
 

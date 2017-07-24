@@ -192,8 +192,8 @@ let max x y = if x > y then x else y
   \frametitle{Lazy Evaluation}
   \begin{itemize}
     \item Only do computation when it is needed i.e. call-by-need
-    \item Lazy evaluation (such as in Haskell) makes previous approach on
-      refinement types unsound
+    \item Lazy evaluation makes previous approach on refinement types unsound,
+      in the sense that typechecker admits some bad runtime behaviours
   \end{itemize}
 \end{frame}
 
@@ -226,7 +226,7 @@ explode x = let n = diverge 1 in
   \frametitle{Why?}
   When checking the type of $y$, the typechecker will generate this constraint
   $$\mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)$$
-  which any SMT solver will accept.
+  which any SMT solver will accept
   \begin{itemize}
     \item This is sound under eager evaluation, since evaluation never reaches call to $div$,
     \item but since $n$ is not needed, division by zero will still occur under lazy evaluation.
@@ -238,7 +238,7 @@ explode x = let n = diverge 1 in
   Label binders as potentially diverging; for these, we omit them in the
   constraint.  Returning to our previous example, our constraint becomes
   $$\mathtt{true}\wedge(y=0)\implies(v=0)\implies(v>0)$$
-  which is now invalid.
+  which is now invalid
 \end{frame}
 
 \begin{frame}
@@ -246,10 +246,10 @@ explode x = let n = diverge 1 in
   Stratified type system consisting of those which may diverge and those which
   may not.
   \begin{itemize}
-    \item At first, all binders are labeled as potentially diverging.  This is
+    \item At first, all binders are labeled as potentially diverging  This is
       sound but very imprecise!
     \item Then use termination analysis to determine which binders actually
-      terminate, thus increasing precision.
+      terminate, thus increasing precision
   \end{itemize}
 \end{frame}
 
@@ -268,10 +268,10 @@ explode x = let n = diverge 1 in
   \frametitle{Implementation and Result}
   \begin{itemize}
     \item LIQUIDHASKELL, a Haskell extension with refinement types successfully
-      brings refinement type checking under lazy evaluation.  
+      brings refinement type checking under lazy evaluation  
     \item Importantly, it retains the advantage of previous approach on
       refinement types: evaluated on Haskell standard library, it needs only 1
-      line of manual annotation per 100 line of code.
+      line of manual annotation per 100 line of code
   \end{itemize}
 \end{frame}
 

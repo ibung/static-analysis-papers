@@ -21,12 +21,122 @@
   \titlepage
 \end{frame}
 
+\section{Eliminating Array Bound Checking Through Dependent Types}
 
-\section{Dependent Types}
+\begin{frame}
+  \frametitle{Array bound checking}
+
+  \begin{itemize}
+    \item Absent in C
+    \item Absence led to numerous problems in practice
+    \item Memory-safe languages include it (Java, ML)
+    \item Impose execution time costs when compiler cannot eliminate them
+    \item Traditional compiler optimizations cannot solve the problem in general
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Dependent types}
+
+  \begin{itemize}
+    \item Types that can depend on or vary with values
+    \item $\mathit{List_A}(n)$ -- type of lists over a type $A$ with length $n$
+    \item $\Pi n : \mathbb{N}.List_\mathbb{N}(n)$ -- type of function taking a
+      natural number $n$ and returning a list of natural numbers with length
+      $n$ (dependent function type, dependent product).
+    \item $\Sigma a : A. B$ -- a pairing of $a$ with an element of $B$ where $a$
+      may be used to produce it (dependent sum).
+    \item Dependent types in general allow for terms of any form to be used in
+      type constructors, which makes type-checking undecidable
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Specializing dependent types}
+
+  \begin{itemize}
+    \item To stay decidable allow only terms of limited form
+    \item $false$, $true$, $b_1 \land b_2$, $b_1 \lor b_2$, $\neg b$
+    \item $i_1 + i_2$, $i_1 - i_2$, $i_1 * i_2$, $i_1~div~i_2$, $i_1~min~i_2$,
+      $i_1~max~i_2$, $abs~i$, $sign~i$, $i_1~mod~i_2$, $i_1 > i_2$, $i_1 <
+      i_2$, $i_1 \ge i_2$, $i_1 \le i_2$, $i_1 = i_2$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Implementation: DML}
+
+  \begin{itemize}
+    \item ML is the base language, type annotations are extended with dependent
+      types
+    \item $\mathit{List_\mathbb{N}(n)} \implies \texttt{nat list(n)}$
+    \item $\Pi a: A.B \implies \texttt{\{a: atype\} btype}$
+    \item $\Sigma a: A.B \implies \texttt{[a : atype] btype}$
+    \item \texttt{nat = \{n int | n $\geq$ 0\}}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Example: \texttt{reverse}}
+
+  \begin{verbatim}
+  fun reverse(l) = let
+    fun rev(nil, ys) = ys
+      | rev(x::xs, ys) = rev(xs, x::ys)
+    where rev <| {m:nat} {n:nat}
+      'a list(m) * 'a list(n) -> 'a list(m+n) in
+    rev(l, nil)
+  end
+  where reverse <| {n:nat} 'a list(n) -> 'a list(n)
+  \end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Constraint generation}
+  \begin{verbatim}
+  rev(nil, ys) = ys
+  \end{verbatim}
+
+  \begin{itemize}
+    \item Generated constraint: $\forall n : nat. \exists M : nat. \exists N :
+      nat. (M = 0 \land N = n \to M + N = n)$
+
+    \item After simplification: $\forall n : nat. (0 + n = n)$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Constraint generation cont.}
+
+  \begin{verbatim}
+  rev(x::xs, ys) = rev(xs, x::ys)
+  \end{verbatim}
+
+  \begin{itemize}
+    \item Constraint:
+      $\forall m : nat. \forall n : nat.(m + 1) + n = m + (n + 1)$,
+
+    \item Solving methods: Fourier-Motzkin, simplex, etc.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Results}
+
+  \begin{itemize}
+    \item DML compiler avoids bound (tag) checks for lists of known length
+    \item Set of benchmarks used, programs were extracted from SML stdlib with
+      type annotations adjusted
+    \item Performance increase 10-70\%, average 30\%
+    \item Costs: type annotations took about 10-20\% of the code!
+    \item Can be improved?
+  \end{itemize}
+\end{frame}
 
 \section{Refinement Types Under Eager Evaluation}
 
 \section{Refinement Types Under Lazy Evaluation}
+
 \begin{frame}
   \frametitle{Lazy Evaluation}
   \begin{itemize}

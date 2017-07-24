@@ -10,6 +10,10 @@
         Joachim Bard\\
         Hizbullah Abdul Aziz}
 
+\setbeamertemplate{bibliography entry title}{}
+\setbeamertemplate{bibliography entry location}{}
+\setbeamertemplate{bibliography entry note}{}
+
 \AtBeginSection[]
 {
   \begin{frame}{Outline}
@@ -257,16 +261,10 @@ explode x = let n = diverge 1 in
   \end{itemize}
 \end{frame}
 
-\begin{frame}
-  \frametitle{References}
-
-  \begin{itemize}
-    \item Hongwei Xi and Frank Pfenning. Eliminating array bound checking
-      through dependent types
-    \item Patrick M. Rondon, Ming Kawaguci, and Ranjit Jhala. Liquid types
-    \item Niki Vazou, Eric L. Seidel, Ranjit Jhala, Dimitros Vytionitis, and
-      Simon Peyton-Jones. Refinement Types For Haskell
-  \end{itemize}
+\begin{frame}{References}
+  \bibliographystyle{plain}
+  \bibliography{main}
+  \nocite{Rondon:2008:LT,Xi:1998:EAB,DBLP:conf/focs/HopcroftPV75}
 \end{frame}
-
 \end{document}
+

@@ -125,7 +125,7 @@
   \begin{itemize}
     \item[1)] Generate templates using standard type inference.
     \item[2)] Generate subtype constraints according to the syntax.
-    \item[3)] Solve the constraints using fixpoint iteration.
+    \item[3)] Solve the constraints by translating them into a decidable logic.
   \end{itemize}
 \end{frame}
 
@@ -148,7 +148,7 @@ let max x y = if x > y then x else y
   Template: $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$
   \begin{itemize}
     \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
-    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\nu = y \} <: \kappa$
+    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = y \} <: \kappa$
   \end{itemize}
   Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
   \begin{itemize}
@@ -159,7 +159,7 @@ let max x y = if x > y then x else y
 \begin{frame}{Example}
   \begin{itemize}
     \item[1)] $x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = x \} <: \kappa$
-    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\nu = y \} <: \kappa$
+    \item[2)] $x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu:$ \lstinline{int} $\mid \nu = y \} <: \kappa$
   \end{itemize}
   Solve using $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$:
   \begin{itemize}
@@ -175,7 +175,7 @@ let max x y = if x > y then x else y
 \begin{frame}{Evaluation}
   \begin{itemize}
     \item Implemented in \textbf{DSolve}.
-    \item Number of annotated lines compared to the \textbf{DML} project.
+    \item Number of annotated lines compared to the \textbf{DML} project:
   \end{itemize}
   \begin{table}
     \begin{tabular}{l|r|r}
@@ -184,6 +184,7 @@ let max x y = if x > y then x else y
       lines & 17\%         & $< 1$\%
     \end{tabular}
   \end{table}
+  Retain benefits from \textbf{DML} without needing many annotations
 \end{frame}
 
 \section{Refinement Types For Haskell}

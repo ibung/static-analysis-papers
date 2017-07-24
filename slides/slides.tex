@@ -96,6 +96,8 @@
   \frametitle{Constraint generation}
   \begin{verbatim}
   rev(nil, ys) = ys
+    where rev <| {m:nat} {n:nat}
+      'a list(m) * 'a list(n) -> 'a list(m+n)
   \end{verbatim}
 
   \begin{itemize}
@@ -111,6 +113,8 @@
 
   \begin{verbatim}
   rev(x::xs, ys) = rev(xs, x::ys)
+    where rev <| {m:nat} {n:nat}
+      'a list(m) * 'a list(n) -> 'a list(m+n)
   \end{verbatim}
 
   \begin{itemize}

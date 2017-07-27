@@ -615,18 +615,10 @@ Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{I
 
 \subsection{Experiments}
 
-\begin{figure}
-    %\includegraphics[width=0.9\textwidth]{experiments.png}
-    \caption{Experimental Results}
-    \label{fig:exp}
-\end{figure}
-
 In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
 To allow array bounds checking the qualifiers are of the form $\nu \bowtie X$ where $\bowtie \in \{<, \le, =, \neq, \geq, >\}$ and $X \in \{0, \star,$ \lstinline{len} $\star$\}.
-The results are summarized in Figure~\ref{fig:exp}.
-The columns for \textbf{DML} and \textbf{DSolve} state how many lines respectively characters of manual annotations are need.
-We observe that in most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. qualifiers.
+In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. qualifiers.
 If qualifiers are missing the infered types help to identify which ones should be added.
 Compared to the \textbf{DML} project the impact is very big.
 Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} only needs 1\% of lines and characters.

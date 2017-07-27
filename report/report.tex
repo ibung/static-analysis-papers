@@ -8,12 +8,10 @@
 \renewcommand{\copyrightline}{}
 \DOIPrefix{}
 
-
 \bibliographystyle{plainurl}% the recommended bibstyle
 
 % Author macros::begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \title{Advanced Type-Based Analysis: Summary of Selected Papers}
-
 
 %% Add all author names here
 \author[1]{Nikita Ziuzin}
@@ -30,15 +28,51 @@
 
 
 \section{Introduction}
-Dependent types have been succesfully applied to advanced type-based program
-analysis, for example to prove safety properties of arrays, security protocols,
-and prove compiler correctness.  The first paper is an early example of
-application of dependent types.  The idea got developed further (among others)
-by the second paper in the form of Logically Qualified Data Types or "Liquid
-Types".  Finally, the third paper extends Liquid Types in the context of
-Haskell Programming Language which uses lazy evaluation by default.
+  
+  Many programming languages have some sort of type system that enforces a
+  certain notion of correctness from a program.  For example, a function that
+  adds two numbers, when defined correctly, should only works on numbers and
+  nothing else (which are reflected on the type of its arguments).  A
+  typechecker ensures that a program is well-typed, that is, everything has a
+  well-defined type, by statically checking the type of every part of a program
+  (usually) during compile time.  In this particular example, trying to call
+  the addition function on a number and a boolean valua should make the
+  typechecker rejects the program as not well-typed.  
 
+  However, well-typed programs can still go wrong.  Standard type systems found
+  in mainstream programming language such as C, Java, or even the more advanced
+  ones in ML or Haskell can't prevent some bad runtime behaviors such as
+  division by zero.  Thus there have been some research on extending types and
+  type systems to become more expressive.  In particular, there is a notion of
+  Dependent Types, which are types that depend on some values.  Starting with
+  statically checking array bound as a motivating example, Dependent Types
+  have spawned many subsequent researches, two of which will be presented in
+  this report.
 
+  In this summary, we will begin with the high-level summary Dependent Types
+  itself~\cite{Xi:1998:EAB}.  We will then proceed with a brief explanation of
+  Liquid Types~\cite{Rondon:2008:LT}, which is types \emph{refined} with
+  predicates that builds on the ideas of Dependent Types.  In particular,
+  Liquid Types make it possible to reduce the number of annotation needed while
+  at the same time retains the benefit of Dependent Types.  Finally, we
+  summarizes the approach taken to bring Liquid Types under lazy evaluation
+  settings~\cite{Vazou:ICFP:2014}.
+
+  % This is from of the template
+  In high-level terms
+  \begin{itemize}
+    \item introduce the topic
+
+    \item explain why it is relevant/related to the course (i.e. how is it related
+    to static analysis)
+
+    \item explain why the topic is important (e.g. where and how can it be used)
+
+    \item introduce your chosen papers and briefly explain how they are related
+    to the topic
+  \end{itemize}
+
+\section{Summary of Papers}
 
 \section{Paper 1: Eliminating array bound checking through dependent types}
 
@@ -353,8 +387,6 @@ types application for the purposes of static analysis. The ideas got
 implemented in form of DML dialect of ML \cite{XiPhd:1998} and inspired further
 developments in refinement types.
 
-
-
 \section{Paper 2: Liquid Types}
 
 \subsection{Introduction}
@@ -591,298 +623,132 @@ If qualifiers are missing the infered types help to identify which ones should b
 Compared to the \textbf{DML} project the impact is very big.
 Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} only needs 1\% of lines and characters.
 
+  \subsection{Refinement Types For Haskell}
 
+    \subsubsection{Lazy Evaluation}
 
-\section{Paper 3: Refinement Types in Haskell}
+      Some programming languages, most notably Haskell, use a different
+      evaluation strategy called lazy evaluation.  Intuitively, lazy evaluation
+      means that computations is only performed if the results of those
+      computations are needed.  For example, if a program specifies that the
+      result of \texttt{div 10 5} be printed on screen, then the this
+      computation i.e. divide 10 by 5 will be computed.  Conversely, if the
+      result of \texttt{div 10 5} is never needed, then it will never return a
+      value.  
 
-\subsection{Introduction and Motivating Examples}
-\subsubsection{Refinement Types, Briefly}
-Refinement types, as the name suggests, refine types with predicates to encode
-values that can inhabit these types.  For example,
-\begin{lstlisting}[abovecaptionskip=-\medskipamount]
-    type Pos = { v:Int | v >  0 }
-    type Nat = { v:Int | v >= 0 }
-\end{lstlisting}
-describe positive and non-negative integers, respectively.  We can then encode
-\emph{pre-} and \emph{post-}conditions for functions using these refined types,
-for example
-\begin{lstlisting}[language=haskell,abovecaptionskip=-\medskipamount]
-    div :: n:Nat -> d:Pos -> { v:Nat | v < n } 
-    (+) :: x:Int -> y:Int -> { v:Int | v = x + y }
-\end{lstlisting}
-which \emph{requires} (for example) that the inputs of \texttt{div} are
-respectively non-negative and positive, and \emph{ensures} that the output of
-\texttt{div} is less than the first input \texttt{n}.
+      It turns out that classical approach on refinement types is unsound under
+      lazy evaluation, in the sense that the typechecker will admit some bad
+      behaviours.  Consider the following example.
+      \begin{verbatim}
+        type Pos = { v:Int | v >  0 }
+        type Nat = { v:Int | v >= 0 }
 
-\subsubsection{Standard Refinement Types: From Subtyping to VC}
-Consider programs in Listing~\ref{list:good-bad}.
-\begin{lstlisting}[caption={Simple Example},float,captionpos=t,label={list:good-bad},language=haskell,abovecaptionskip=-\medskipamount]
-    good :: Nat-> Nat -> Int
-    good x y = let z = y + 1 in x `div` z
+        div :: n:Nat -> d:Pos -> { v:Nat | v < n } 
+        (+) :: x:Int -> y:Int -> { v:Int | v = x + y }
+        diverge :: Int -> { v:Nat | false } 
 
-    bad :: Nat -> Nat -> Int
-    bad x y = x `div` y
-\end{lstlisting}
-To anaylize \texttt{bad}, the refinement type system will create a subtyping
-query for the second argument to \texttt{div},
-\begin{align*}
-    x:\{x\geq0\}, y:\{y\geq0\}\vdash\{v\geq0\}\preceq\{v>0\}
-\end{align*}
-which will get translated into the following \emph{verification condition}
-(VC),
-\begin{align*}
-    (x\geq0)\wedge(y\geq0)\implies(v\geq0)\implies(v>0)
-\end{align*}
-which a SMT solvers will reject as invalid.  Thus a refinement system will
-reject \texttt{bad}.
+        explode :: Int -> Int
+        explode x = let n = diverge 1 in 
+                    let y = 0 in 
+                    div x y
+      \end{verbatim}
 
-On the other hand, the refinement system will accept \texttt{good}.  The
-corresponding subtyping query is
-\begin{align*}
-    x:\{x>0\}, y:\{y\geq0\},z:\{z=y+1\}\vdash\{v=y+1\}\preceq\{v>0\}
-\end{align*}
-which reduces to a valid VC
-\begin{align*}
-    (x\geq0)\wedge(y\geq0)\wedge(z=y+1)\implies(v=y+1)\implies(v>0)
-\end{align*}
+      When checking for the type of \texttt{y}, the typechecker will generate
+      the constraint
+      $$\mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)$$
+      which any SMT solver will accept since we have falsity in the antecedent.
+      Note that the \texttt{false} part in the constraint comes from
+      \texttt{diverge}, which essentially states that this function diverges
+      i.e. will not return any value.
 
-\subsubsection{Lazy Evaluation Makes VCs Unsound}
-Consider Listing~\ref{list:counter}.  
-\begin{lstlisting}[caption={Lazy evaluation breaks VC},float,captionpos=t,label={list:counter},language=haskell,abovecaptionskip=-\medskipamount]
-    diverge :: Int -> { v:Nat | false } 
-    diverge n = diverge n
+      This constraint is of course sound under eager evaluation, since we will
+      never get into calling \texttt{div} with the second argument equals to
+      zero i.e. division by zero.  Under lazy evaluation however, since
+      \texttt{n} is not needed in the computation of the result of
+      \texttt{explode}, the computation will jump straight into evaluating
+      \texttt{div} thus resulting in division by zero.  Recall that the type of
+      \texttt{div} should prevent this since it requires its second argument to
+      have type \texttt{Pos}, a positive integer, which proves the unsoundness
+      of the previous approach.
 
-    explode :: Int -> Int
-    explode x = let { n = diverge 1; y = 0 }
-                 in x `div` y
-\end{lstlisting}
-Under lazy evaluation, it will result in division by zero (but not under eager
-evaluation).  To see why, consider that the refinement type system will check
-that \texttt{y} has type \texttt{Pos} at the call to \texttt{div}, i.e.
-\begin{align*}
-    n:\{\mathtt{false}\},y:\{y=0\}\vdash\{v=0\}\preceq\{v>0\}
-\end{align*}
-which reduces to VC
-\begin{align*}
-    \mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)
-\end{align*}
-which is valid because of contradiction in the antecedent.  Under eager
-evaluation, this is a sound VC; \texttt{div} never gets executed since
-\texttt{diverge} doesn't terminate i.e. doesn't produce a value (the
-\texttt{false} in the type signature of \texttt{diverge} basically tells this).
-Under lazy evaluation, since the result of \texttt{n} is not needed,
-\texttt{diverge} will not be computed thus resulting in a division by zero and
-making the VC unsound.
+    \subsubsection{Solution}
+      
+      To restore soundness, the main idea is to label binders as potentially
+      diverging and omit those in the typing constraint.  Returning to the
+      previous example, by omitting \texttt{diverge} in the constraint, we have
+      $$\mathtt{true}\wedge(y=0)\implies(v=0)\implies(v>0)$$
+      which is now an invalid constraint and thus the typechecker will reject
+      this as not well-typed.
 
-\subsubsection{Solutions, Challenges, and Key Idea}
-There are two natural solutions to the above problem:
-\begin{itemize}
-    \item Only consider variables which are guaranteed to have values e.g.
-        those under pattern matching, \texttt{seq}, or strictness annotations.
-        This approach is sound but imprecise.
-    \item Reason \emph{explicitly} about diverging terms within the refinement
-        logic.  Unfortunately, while this approach is sound and precise, it is
-        not clear how to use the existing SMT machinery to do this.
-\end{itemize}
-The paper proposes a method to reason \emph{implicitly} about divergence using
-stratified type system.
+      One way to implement this is to have a \emph{stratified} type system
+      consisting of types which may diverge and those which may not.
+      \begin{itemize}
+        \item Initially, every binders have types which may diverge.  This is
+          sound but very imprecise since now there is no constraint at all.
+        \item Then termination analysis is used to determine which binders
+          actually terminate, thus getting some constraints back.
+      \end{itemize}
 
+      Now it should be clear that the accuracy of this approach depends on the
+      termination analysis.  Loosely speaking, there are three main points of
+      it.
+      \begin{itemize}
+        \item As with previous approaches, the refinements itself must be
+          restricted into some sort of decidable logic, because otherwise
+          typechecking would be undecidable.  Here refinements are drawn from
+          QF-EUFLIA, the decidable logic of equality, uninterpreted
+          functions and linear arithmetic.
+        \item To prove termination of inductively defined functions i.e.
+          recursive functions, it employs some default size measures and check
+          whether those measures decrease on each (recursive) function call.
+          This approach is of course not unlike one found in other programming
+          languages such as Coq. Using these default measures, termination can
+          be proven automatically.
+        \item If the automatic termination analysis fails, then the size
+          measure must be explicitly specified by the user.
+      \end{itemize}
 
-\subsection{Verification With Stratified Types}
-\subsubsection{Implicit Reasoning: Lazy Evaluation}
-Formally, the aforementioned type system is \emph{stratified} into types which
-are inhabited by:
-\begin{itemize}
-    \item Potentially diverging terms, called Div-type and written as $\tau$.
-    \item Terms that are guaranteed to reduce into Haskell values in WHNF (Weak
-        Head Normal Form), in finite steps.  These terms are said to have
-        Wnf-types (written as $\tau^{\downarrow}$).  Note that Wnf-type can
-        contain infinite values e.g. list with infinite length such as
-        \texttt{0 : repeat 0}.
-    \item Terms that reduce into finite values, called Fin-type and written as
-        $\tau^{\Downarrow}$.
-\end{itemize}
-The key idea here is that if a variable may diverge (i.e. with type that
-belongs to Div types), the constraint for it is omitted in the VC.  Formally,
-let $B$ be a basic labelled type.  Then it will be translated into VC as
-follows:
-\begin{align}
-    (|x:\{v:B|r\}|)=
-    \left\{
-        \begin{array}{ll}
-            \texttt{true}&\mbox{if }B\mbox{ is a Div type}\\
-            r[x/v]&\mbox{otherwise}
-        \end{array}
-    \right.
-\end{align}
+    \subsection{Implementation and Result}
+      
+      LIQUIDHASKELL, a Haskell extension with refinement types succesfully
+      brings refinement typechecking under lazy evaluation.  The termination
+      analysis used in LIQUIDHASKELL is usable since it only requires about 1
+      line of code of explicit size measure per 100 line of code, thus
+      retaining the advantage of previous approach while maintaining soundness
+      under lazy evaluation.
 
-\subsubsection{VC and Partial Correctness}
-The preceeding refinement type system retain the Hoare notion of "partial
-correctness", which means that if a function terminates, then its pre- and
-post-conditions hold.  Thus it can verify programs where all terms are of Div
-types.  The following example illustrates this point.
-\begin{lstlisting}[caption={Partial Correctness},float,captionpos=t,label={list:partial-correctness},language=haskell,abovecaptionskip=-\medskipamount]
-    example :: Int -> Int
-    example n = let x = collatz n in 10 `div` x
+\section{Context and Connection (feel free to change the section names)}
 
-    collatz :: Int -> { v:Int | v = 1 }
-    collatz n
-        | n == 1    = 1
-        | even n    = collatz (n / 2)
-        | otherwise = collatz (3*n + 1)
-\end{lstlisting}
+  As briefly mentioned in~\ref{section:Introduction}, Dependent Types and its
+  subsequent improvements are extensions to the standard type systems discussed
+  in the class.  These extensions make the type system more expressive and thus
+  enable it to prove (and enforce) more properties.
 
-It is unclear whether \texttt{collatz} terminates, but we know that its output
-is a Div \texttt{Int} with value equal to $1$.  Thus we have the subtyping
-query
-\begin{align*}
-    x:\{v:Int|v=1\}\vdash\{v=1\}\preceq\{v>0\}
-\end{align*}
-yielding the valid VC
-\begin{align*}
-    \mathtt{true}\implies(v=1)\implies(v>0)
-\end{align*}
-thereby verifying \texttt{example}.
+  From Dependent Types, Liquid Types takes the idea of refinement types further
+  and enable automatic inference of types thus reducing the need for manual
+  type annotations.  Lastly, LIQUIDHASKELL fixed the soundness of Liquid Types
+  under lazy evaluation while retains its advantage of automatic type
+  inference.
 
-\subsubsection{Improving Precision by Forcing Evaluation}
-If all the terms have Div types then the verifier cannot make any assumption
-about the context in which a term evaluates.  This leads to a drastic loss of
-precision.  Consider the call to \texttt{div} in
-Listing~\ref{list:loss-of-precision}, which obviously safe, but the system
-would reject it as it yiels the subtyping query
-\begin{align*}
-    x:\{x:Int|v=1\},y:\{y:Int|y>x\}\vdash\{v>x\}\preceq\{v>0\}
-\end{align*}
-and invalid VC
-\begin{align*}
-    \mathtt{true}\implies(v>x)\implies(v>0)
-\end{align*}
-since \texttt{x} is a Div type.
-\begin{lstlisting}[caption={Loss of Precision},float,captionpos=t,label={list:loss-of-precision},language=haskell,abovecaptionskip=-\medskipamount]
-    ex = let { x = 1; y = inc x } in 10 `div` y
+  % This is from the template
+  Now that the content of the papers has been explained in more detail,
+  this section should
+  \begin{itemize}
+    \item put the papers into context (as seen in the class). E.g. how do the
+    ideas presented in the paper related to ideas seen in class; are the techniques
+    an extension; if they are completely different, explain how (and perhaps why), etc.
 
-    inc :: z:Int -> { v:Int | v > z }
-    inc = \z -> z + 1
-\end{lstlisting}
+    \item explain the connections and/or differences between the papers.
+      E.g. if they present different approaches, how do these compare, what are the pros/cons?
+      If the techniques build on each other, how are they connected?
+      If they are part of a larger system, how do they complement each other?
+      Etc.
 
-This problem can be solved by forcing the evaluation of \texttt{x}, either by
-\texttt{seq} or the strictness annotation, thus changing the previous subtyping
-query
-\begin{align*}
-    x:\{x:Int^{\downarrow}|v=1\},y:\{y:Int|y>x\}\vdash\{v>x\}\preceq\{v>0\}
-\end{align*}
-and valid VC
-\begin{align*}
-    (x=1)\implies(v>x)\implies(v>0)
-\end{align*}
-which the system would gladly verify.
+  \end{itemize}
 
-\subsubsection{Improving Precision by Termination}
-While the forcing evaluation leads to better precision, it requires program
-rewriting which could be cumbersome.  Another approach is to use a termination
-analysis to aggresively assign terminating expressions Fin types.  Returning to
-Listing~\ref{list:loss-of-precision}, since term \texttt{1} obviously
-terminates, we can type \texttt{x} as $Int^{\Downarrow}$, which yiels the
-subtyping query
-\begin{align*}
-    x:\{x:Int^{\Downarrow}|v=1\},y:\{y:Int|y>x\}\vdash\{v>x\}\preceq\{v>0\}
-\end{align*}
-and valid VC
-\begin{align*}
-    (x=1)\implies(v>x)\implies(v>0)
-\end{align*}
+\section{Conclusion}
 
-\subsubsection{Verifying Termination With Refinements}
-\begin{lstlisting}[caption={Verifying Termination},float,captionpos=t,label={list:termination-check},language=haskell,abovecaptionskip=-\medskipamount]
-    ex2 = let { x = fun 9; y = inc x } in 10 `div` y
-
-    fun :: Nat -> { v:Int | v = 1 }
-    fun n = if n == 0 then 1 else f (n-1)
-\end{lstlisting}
-How to verify termination for recursive functions?  One approach is to show
-that each recursive call is made with arguments of a strictly smaller size,
-where size itself is a well-founded metric such as natural numbers.  For
-example, the system typecheck the body of \texttt{fun} in
-Listing~\ref{list:termination-check} inside environtment
-\begin{align*}
-    x:Nat^{\Downarrow}, \mathtt{fun}:\{n':Nat^{\Downarrow}|n'<n\}\rightarrow\{v=1\}
-\end{align*}
-where the type of \texttt{fun} is weaken to stipulate that it only be
-recursively called with \texttt{Nat} values $n'$ that are strictly less than
-the current parameter $n$.  This generates the valid VC
-\begin{align*}
-    (0\leq n)\wedge\neg(0=n)\implies(v=n-1)\implies(0\leq v<n)
-\end{align*}
-
-Since (potentially) non-terminating variables can appear in the refinement $r$,
-we exclude diverging refinements from types.  In particular, a refinement type
-$\{v:B|r\}$ if well formed if and only if $r$ has type $Bool^{\Downarrow}$
-
-\subsubsection{Measures}
-To describe properties of algebraic data types, the paper uses \emph{measures}
-instead of integer and boolean expressions.  For example, the measure
-\texttt{emp}
-\begin{lstlisting}[abovecaptionskip=-\medskipamount]
-    measure emp :: [Int] -> Bool
-        emp []      = true
-        emp (x:xs)  = false 
-\end{lstlisting}
-checks whether a list of \texttt{Int}s is empty.  As shown here, a measure
-consists of a set of equations with simple pattern on the left hand side.  On
-the other hand, the right hand sides contain refinement expressions $r$.  With
-the above definition of \texttt{emp}, it is straightforward to show that
-\begin{align*}
-    \mathtt{[1,2,3]}::\{v:\mathtt{[Int]}|\mathtt{not (emp v)}\}
-\end{align*}
-
-How to reason about measures in the context of refinement types?  One approach
-that is both precise and efficient is by translating each equation in a measure
-into refined types for the corresponding data constructor.  Thus for list and
-the \texttt{emp} measure, we have
-\begin{lstlisting}[abovecaptionskip=-\medskipamount]
-    []  :: { v:[Int] | emp v = true }
-    :   :: x:Int -> xs:[Int] -> { v:[Int] | emp v = false } 
-\end{lstlisting}
-This way, each time a list value is constructed, its type carries over its
-emptiness information.  Furthermore, each time a list value is pattern-matched,
-its emptiness information can be used to improve precision.
-
-Finally, if a type has multiple measures, it is refined with the conjunction of
-each measures.  For example, the \texttt{len} measure can be used to compute
-the length of a list
-\begin{lstlisting}[abovecaptionskip=-\medskipamount]
-    measure len :: [Int] -> Int
-        len []      = 0
-        len (x:xs)  = 1 + len xs 
-\end{lstlisting}
-\begin{lstlisting}[abovecaptionskip=-\medskipamount]
-    []  :: { v:[Int] | len v = 0 }
-    :   :: x:Int -> xs:[Int] -> { v:[Int] | len v = 1 + (len xs) } 
-\end{lstlisting}
-Thus the final type for list data constructors will be as follows.
-\begin{lstlisting}[abovecaptionskip=-\medskipamount]
-    []  :: { v:[Int] | emp v = true && len v = 0 }
-    :   :: x:Int -> xs:[Int] -> 
-           { v:[Int] | emp v = false && len v = 1 + (len xs) } 
-\end{lstlisting}
-
-
-\subsection{Conclusions}
-This paper made two important contributions.  First, it shows that the standard
-techniques to generate VCs from refinement subtyping queries is unsound under
-lazy evaluation.  Second, it presented a solution that addresses the
-unsoundness by using a stratified type system which consists of types that are
-inhabited by potentially diverging terms, types that must reduce to a Haskell
-value, and types that must reduce to a finite value.  
-
-While the approach presented in the paper works well in practice, the authors
-admitted that from theoretical point of view, it felt unsatisfying since it
-relies critically on proving termination.  It felt unsatisfying since adding
-divergence shouldn't break a safety proof.  Nevertheless, the solution
-presented in the paper are constrained by current available two-valued logic SMT
-machinery; improvements might need a three-valued logic SMT to explicitly
-handle divergence and thus will rely less on proving terminations.
-
+  What is the 'take-home-message'?
 
 %%
 %% Bibliography
@@ -890,7 +756,6 @@ handle divergence and thus will rely less on proving terminations.
 
 %% Either use bibtex (recommended),
 
-\cite{*}
 \bibliography{main}
 
 %% .. or use the thebibliography environment explicitely

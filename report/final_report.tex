@@ -76,7 +76,98 @@
 
   \subsection{Paper 1}
   \subsection{Paper 2}
-  \subsection{Paper 3}
+  \subsection{Refinement Types For Haskell}
+
+    \subsubsection{Lazy Evaluation}
+
+      Some programming languages, most notably Haskell, use a different
+      evaluation strategy called lazy evaluation.  Intuitively, lazy evaluation
+      means that computations is only performed if the results of those
+      computations are needed.  For example, if a program specifies that the
+      result of \texttt{div 10 5} be printed on screen, then the this
+      computation i.e. divide 10 by 5 will be computed.  Conversely, if the
+      result of \texttt{div 10 5} is never needed, then it will never return a
+      value.  
+
+      It turns out that classical approach on refinement types is unsound under
+      lazy evaluation, in the sense that the typechecker will admit some bad
+      behaviours.  Consider the following example.
+      \begin{verbatim}
+        type Pos = { v:Int | v >  0 }
+        type Nat = { v:Int | v >= 0 }
+
+        div :: n:Nat -> d:Pos -> { v:Nat | v < n } 
+        (+) :: x:Int -> y:Int -> { v:Int | v = x + y }
+        diverge :: Int -> { v:Nat | false } 
+
+        explode :: Int -> Int
+        explode x = let n = diverge 1 in 
+                    let y = 0 in 
+                    div x y
+      \end{verbatim}
+
+      When checking for the type of \texttt{y}, the typechecker will generate
+      the constraint
+      $$\mathtt{false}\wedge(y=0)\implies(v=0)\implies(v>0)$$
+      which any SMT solver will accept since we have falsity in the antecedent.
+      Note that the \texttt{false} part in the constraint comes from
+      \texttt{diverge}, which essentially states that this function diverges
+      i.e. will not return any value.
+
+      This constraint is of course sound under eager evaluation, since we will
+      never get into calling \texttt{div} with the second argument equals to
+      zero i.e. division by zero.  Under lazy evaluation however, since
+      \texttt{n} is not needed in the computation of the result of
+      \texttt{explode}, the computation will jump straight into evaluating
+      \texttt{div} thus resulting in division by zero.  Recall that the type of
+      \texttt{div} should prevent this since it requires its second argument to
+      have type \texttt{Pos}, a positive integer, which proves the unsoundness
+      of the previous approach.
+
+    \subsubsection{Solution}
+      
+      To restore soundness, the main idea is to label binders as potentially
+      diverging and omit those in the typing constraint.  Returning to the
+      previous example, by omitting \texttt{diverge} in the constraint, we have
+      $$\mathtt{true}\wedge(y=0)\implies(v=0)\implies(v>0)$$
+      which is now an invalid constraint and thus the typechecker will reject
+      this as not well-typed.
+
+      One way to implement this is to have a \emph{stratified} type system
+      consisting of types which may diverge and those which may not.
+      \begin{itemize}
+        \item Initially, every binders have types which may diverge.  This is
+          sound but very imprecise since now there is no constraint at all.
+        \item Then termination analysis is used to determine which binders
+          actually terminate, thus getting some constraints back.
+      \end{itemize}
+
+      Now it should be clear that the accuracy of this approach depends on the
+      termination analysis.  Loosely speaking, there are two main points of it.
+      \begin{itemize}
+        \item As with previous approaches, the refinements itself must be
+          restricted into some sort of decidable logic, because otherwise
+          typechecking would be undecidable.  Here refinements are drawn from
+          QF-EUFLIA, the decidable logic of equality, uninterpreted
+          functions and linear arithmetic.
+        \item To prove termination of inductively defined functions i.e.
+          recursive functions, it employs some default size measures and check
+          whether those measures decrease on each (recursive) function call.
+          This approach is of course not unlike one found in other programming
+          languages such as Coq. Using these default measures, termination can
+          be proven automatically.
+        \item If the automatic termination analysis fails, then the size
+          measure must be explicitly specified by the user.
+      \end{itemize}
+
+    \subsection{Implementation and Result}
+      
+      LIQUIDHASKELL, a Haskell extension with refinement types succesfully
+      brings refinement typechecking under lazy evaluation.  The termination
+      analysis used in LIQUIDHASKELL is usable since it only requires about 1
+      line of code of explicit size measure per 100 line of code, thus
+      retaining the advantage of previous approach while maintaining soundness
+      under lazy evaluation.
 
 \section{Context and Connection (feel free to change the section names)}
 

@@ -392,35 +392,41 @@ developments in refinement types.
 \subsection{Paper 2: Liquid Types}
 
 \subsubsection{Goal/Problem}
+The approach presented in~\cite{Xi:1998:EAB} needs many manual type annotations.
+This is tedious and sometimes it is not easy to come up with the correct dependent type.
+Therefore Rondon et al. introduced logically qualified data types or short liquid types~\cite{Rondon:2008:LT}.
+The advantage of liquid types is that those types can be infered automatically.
 
 \subsubsection{Main Idea}
 
-Rondon et al. introduced logically qualified data types or short Liquid types in~\cite{Rondon:2008:LT}.
-Liquid types are dependent types and thus one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu < 100\}$.
-If one thinks of $i$ as an index of an array with 100 elements the type ensures that one can safely access the array at index $i$.
-The advantage of liquid types is that those types can be infered automatically.
-The inference is done in 3 steps:
+Liquid types are dependent types where we restrict the refinements to conjunctions of predicates (qualifiers) and their negations.
+This restriction is similar to predicate abstraction.
+But unlike for predicate abstraction the set of predicates are chosen manually and not by examining the program code.
+This choice depends on the property one wants to show by the analysis.
+For example one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu <$ \lstinline{len} $a\}$.
+This type ensures that accessing array $a$ at index $i$ is safe.
+Note that we used a predicate which compares the special value variable $\nu$ with the length of the array $a$.
+To infer such types automatically 3 steps are executed:
 \begin{enumerate}
-    \item Step 1 performs a classical type inference.
+    \item Step 1 performs a classical type inference as seen in class.
         The obtained types are transformed into templates where the unknown type refinements are expressed by so called liquid type variables.
     \item Step 2 generates a set of subtype constraints which restrict choices for the liquid type variables.
         This step is guided by the syntax.
     \item Step 3 tries to solve these constraints by embedding them into a decidable logic.
 \end{enumerate}
 
-To describe the refinements of liquid types we take a set of predicates (qualifiers) over program variables and a special variable $\nu$.
-By taking conjunctions of qualifiers from $P \cup \neg P$ we get refinements of liquid types.
-A base type $B$ is a short form of $\{\nu: B \mid true\}$.
-We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ if the base type $B$ is clear from the context.
-%how to choose $P$
+%mention this when using the notation
+%A base type $B$ is a short form of $\{\nu: B \mid true\}$.
+%We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ if the base type $B$ is clear from the context.
 
 \begin{lstlisting}[caption={Example Program},label=lst:exmpl,captionpos=t,float,abovecaptionskip=-\medskipamount]
 let max x y =
     if x > y then x else y
 \end{lstlisting}
 
+To illustrate those 3 steps we look at an example in listing~\ref{lst:exmpl}.
+
 %path sensitive
-We will show that the function \lstinline{max} in Listing~\ref{lst:exmpl} returns a value which is greater or equal to both arguments.
 In step 1 classical type inference yields the type $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int} for \lstinline{max}.
 Using this type we build the template $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$.
 The liquid type variables $\kappa_x, \kappa_y, \kappa$ are the unknown refinements for the arguments $x$ and $y$ plus the body of \lstinline{max}.

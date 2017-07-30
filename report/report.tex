@@ -63,11 +63,12 @@ under lazy evaluation settings~\cite{Vazou:ICFP:2014}.
 
 The problem of array bound checking is persistent in many programming
 languages. That is, the languages that are said to be memory-safe in the
-runtime such as \textbf{ML} or \textbf{Java} need to include the checks for
-array access in the compiled code resulting in the increased execution time
-costs when the checking is redundant. On the other hand, the languages that do
-not employ array bound checking in runtime, such as \textbf{C} result in
-particularly unpleasant runtime bugs when the programmer is not careful.
+runtime such as \textbf{ML} or \textbf{Java} need to include the bound checks
+for every array access in the compiled code. This results in increased
+execution time costs when the checking is redundant. On the other hand, the
+languages that do not employ array bound checking in runtime, such as
+\textbf{C} result in particularly unpleasant runtime bugs when the programmer
+is not careful.
 
 To address this issue, several methods have been developed over time. Many of
 such methods try to eliminate redundant checks without any help from the
@@ -93,10 +94,10 @@ a given length $N : \mathbb{N}$ over some type $\gamma$. The elements of such
 type are $Nil_\gamma : List(0)$ and $Cons_\gamma(x, l) : List(N+1)$, where $x :
 \gamma$ and $l : List_\gamma(N)$. Now let's consider a function that takes $n :
 \mathbb{N}$ and returns a list of length $n$ containing $0$ in all entries.
-This function would have type $\Pi n : \mathbb{N}.List_\mathbb{N}(n)$, a type
-of functions for which the type of the return value depends on the argument.
-The important point of the dependent typing is that it reveals more information
-about the function.
+This function would have the type $\Pi n : \mathbb{N}.List_\mathbb{N}(n)$, a
+type of functions for which the type of the return value depends on the
+argument.  The important point of the dependent typing is that it reveals more
+information about the function.
 
 It's worth notice that the general definition of the dependent types allows for
 terms of any kind to be used in the typing expression. Naturally, this makes
@@ -112,22 +113,22 @@ For a full study on the dependent types the reader is referred to
 
 \subsubsection{Restriction on dependent types}
 
-\textbf{DML}, a language that covers an \textbf{ML} fragment extended with a
-limited form of dependent types is used to give a practical validation for the
+A language that covers an \textbf{ML} fragment extended with a limited form of
+dependent types, \textbf{DML}, is used to give a practical validation for the
 solution. This fragment matches the core language of the \textbf{ML} standard,
 making omission for exceptions and modules, and contains the addition of the
 restricted form for the dependent type annotations.
 
-This form is consists of linear integer arithmetic (LIA) and boolean
-expressions that can be solved by a LIA solver.
+This form consists of linear integer arithmetic (LIA) and boolean expressions
+that can be solved by a LIA solver.
 
 In the concrete syntax a value on which a dependent type is formed will be
 called an \emph{index object}. For example, a type of integer lists in
 \textbf{ML} would be written as follows: \texttt{int list}. To express a type
-of the integer lists of length two one writes: \texttt{int list(2)}, where 2 is
-exactly the \emph{index object}. Then a function to append two integer lists of
-some fixed lengths \texttt{n} and \texttt{m} would have the type:
-\texttt{int(n) -> int(m) -> int(n+m)}.
+of integer lists of length two one writes: \texttt{int list(2)}, where
+\texttt{2} is exactly the \emph{index object}. Then a function to append two
+integer lists of some fixed lengths \texttt{n} and \texttt{m} would have the
+type: \texttt{int(n) -> int(m) -> int(n+m)}.
 
 Index objects can be boolean constants $false$, $true$ or boolean expressions
 composed by $\land$, $\lor$, $\neg$, and integer expressions resulting in
@@ -136,12 +137,13 @@ integers: $+$, $-$, $*$, $div$, $min$, $max$, $abs$, $sign$, $mod$, $>$, $<$,
 $\ge$, $\le$, $=$.
 
 To quantify the variables used in the index object one writes \texttt{\{a:g\}
-t} for the universal quantification (often written in the literature as $\Pi a:
-\gamma.  \tau$) and \texttt{[a:g] t} for the existential quantification
-($\Sigma a: \gamma. \tau$).  $\{ a: g | b \}$ corresponds to those elements of
-a type $g$ that satisfy the boolean constraints $b$. There's also a shorthand
-\texttt{\{a:g | b\} t} for $\Pi a: \{a: \gamma | b\}. \tau$. And then $nat$
-serves as an abbreviation for \texttt{\{a: int | a >= 0\}}.
+t} for the universal quantification (mathematical notation for this that is
+often met in the literature is $\Pi a: \gamma.  \tau$) and \texttt{[a:g] t} for
+the existential quantification ($\Sigma a: \gamma. \tau$).  \texttt{\{a: g | b\}}
+corresponds to those elements of a type $g$ that satisfy the boolean
+constraints $b$. There's also a shorthand \texttt{\{a:g | b\} t} for $\Pi a:
+\{a: \gamma | b\}. \tau$. And then $nat$ serves as an abbreviation for
+\texttt{\{a: int | a >= 0\}}.
 
 \begin{lstlisting}[caption={The filter function for lists},label=filter,captionpos=t,float,abovecaptionskip=-\medskipamount]
 fun filter p nil = nil
@@ -157,7 +159,7 @@ given a list over some type $A$ and a predicate on $A$ returns a list
 containing all the elements that satisfy the predicate. The dependent types
 annotation, \texttt{where filter <| \{m: nat\} ('a -> bool) -> 'a list(m) ->
 [n:nat | n <= m] 'a list(n)} displays the relation between input and output
-lists, that is that the resulting list is shorter than the initial.
+lists, signifying that the resulting list is shorter than the initial.
 
 \begin{lstlisting}[caption={The reverse function for lists},label=reverse,captionpos=t,float,abovecaptionskip=-\medskipamount]
 fun reverse(l) =
@@ -179,10 +181,10 @@ from the argument to the result.
 
 \subsubsection{Type checking on the restriction}
 
-The first step of type checking in \textbf{DML} is to ignore index objects and
+The first type checking step in \textbf{DML} is to ignore index objects and
 ensure that the program type checks without them as an \textbf{ML} program.
 Afterwards, index objects are checked. Since the allowed expressions form
-linear integer inequalities, constraints on the integers can be extracted form
+linear integer inequalities, constraints on the integers can be extracted from
 the index objects and checked separately.
 
 Consider for the example the \texttt{rev} function from the Figure

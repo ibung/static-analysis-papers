@@ -71,7 +71,7 @@
     to the topic
   \end{itemize}
 
-\section{Summary of Papers}
+\section{Papers}
 
 \subsection{Paper 1: Eliminating array bound checking through dependent types}
 
@@ -434,7 +434,7 @@ Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are a
       \end{itemize}
 
     \subsection{Implementation and Result}
-      
+
       LIQUIDHASKELL, a Haskell extension with refinement types succesfully
       brings refinement typechecking under lazy evaluation.  The termination
       analysis used in LIQUIDHASKELL is usable since it only requires about 1
@@ -442,37 +442,49 @@ Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are a
       retaining the advantage of previous approach while maintaining soundness
       under lazy evaluation.
 
-\section{Context and Connection (feel free to change the section names)}
+\section{Summary}
 
-  Dependent types and the subsequent improvements are extensions to the simple
-  type systems discussed in the class. These extensions make the type system
-  more expressive and thus enable it to check more program properties.
+Simple type checking as seen in the class cannot capture some bad behaviours
+that impose conditions on the types used in the program (for instance, simple
+type annotations cannot express that a function should take integers only from
+a certain range). The core idea of all three papers is to use dependent types
+to make type systems more expressive and allow to check more complex program
+properties
 
-  From the dependent types, Liquid Types takes the idea of type refinement
-  further and enables automatic type inference, reducing the need for manual
-  type annotations. Lastly, LIQUIDHASKELL addresses the soundness of Liquid
-  Types under lazy evaluation while retaining the advantages of automatic type
-  inference.
+As seen in the first paper, initial attempts to apply the dependent types for
+the purpose of the static program analysis require comparatively many type
+annotations to work.
 
-  % This is from the template
-  Now that the content of the papers has been explained in more detail,
-  this section should
-  \begin{itemize}
-    \item put the papers into context (as seen in the class). E.g. how do the
-    ideas presented in the paper related to ideas seen in class; are the techniques
-    an extension; if they are completely different, explain how (and perhaps why), etc.
+Second paper describing Liquid Types presents the improvement on the previous
+idea, being able to infer most annotations automatically.
 
-    \item explain the connections and/or differences between the papers.
-      E.g. if they present different approaches, how do these compare, what are the pros/cons?
-      If the techniques build on each other, how are they connected?
-      If they are part of a larger system, how do they complement each other?
-      Etc.
+Finally, the subject of the third paper LIQUIDHASKELL addresses the soundness
+of Liquid Types under lazy evaluation while retaining the advantages of
+automatic type inference.
 
-  \end{itemize}
+All of the discussed type systems and ideas have ``real world'' implementations
+as extensions of main-stream functional languages that confirm their usability
+for certain analyses.
 
 \section{Conclusion}
 
-  What is the 'take-home-message'?
+Dependent types allow a programmer to perform checking of certain run-time
+program properties statically. However, The full richness of dependent types
+comes at the cost of undecidability of the type checking. The shown
+developments retain decidability and allow for a limited form of dependent
+types to be used in the program.
+
+Initial approach relied heavily on the help from the programmer, while the
+later ones, Liquid Types, are able to infer most type information without any
+help. Liquid type checking cannot be used under lazy evaluation without any
+adaptation, but the adaptation is possible.
+
+The analyses based on dependent types may be performed alongside or in place of
+some traditional imprecise compiler optimizations or analyses (array bound
+checks elimination, division by zero detection), making them precise. The
+precision comes at the cost of the programmer's help for certain cases, but the
+benefits may be invaluable in the application areas, where strong correctness
+properties are needed.
 
 %%
 %% Bibliography

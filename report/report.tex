@@ -253,7 +253,7 @@ in the programs.
 The approach presented in~\cite{Xi:1998:EAB} needs many manual type annotations.
 This is tedious and sometimes it is not easy to come up with the correct dependent type.
 Therefore Rondon et al. introduced logically qualified data types or short liquid types~\cite{Rondon:2008:LT}.
-The advantage of liquid types is that those types can be infered automatically.
+The advantage of liquid types is that those types can be inferred automatically.
 
 \subsubsection{Main Idea}
 
@@ -283,10 +283,9 @@ let max x y =
 \end{lstlisting}
 
 To illustrate those 3 steps we look at an example in listing~\ref{lst:exmpl}.
-
-%path sensitive
 In step 1 classical type inference yields the type $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int} for \lstinline{max}.
 Using this type we build the template $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$.
+We use $\kappa$ as abbreviation for $\{ \nu:$ \lstinline{int} $\mid \kappa\}$ and similar for $\kappa_x$ and $\kappa_y$.
 The liquid type variables $\kappa_x, \kappa_y, \kappa$ are the unknown refinements for the arguments $x$ and $y$ plus the body of \lstinline{max}.
 Step 2 generates the following constraints since the body is an \lstinline{if}-expression:
 \begin{align}
@@ -294,23 +293,26 @@ Step 2 generates the following constraints since the body is an \lstinline{if}-e
     x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu: \texttt{int} \mid \nu = x \} <: \kappa\\
     x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu: \texttt{int} \mid \nu = y \} <: \kappa
 \end{align}
-The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu: \texttt{int} \mid \nu = x \}$) to be a subtype
+The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu:$ \lstinline{int} $\mid \nu = x \}$) to be a subtype
 of the body ($\kappa$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
 The second contraint is analogous.
 Note that in the environment the branch condition is false.
-So path sensitivity is introduced by adding assumptions to the environment.
-In step 3 we set $\kappa_x$ and $\kappa_y$ to true because \lstinline{max} can be called by any integer.
-Moreover we use a theorem prover to get the strongest conjunction of qualifiers in $\mathbb{Q}^\star$ for $\kappa$ which staisfies the two constraints.
-We get $x \le \nu \land y \le \nu$ since if $x > y \land \nu = x$ then $x \le \nu \land y \le \nu$ and if $\neg(x > y) \land \nu = y$
-then $x \le \nu \land y \le \nu$.
+Step 3 translates these two constraints into a decidable logic and solves them using the predicates $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$.
+First we set $\kappa_x$ and $\kappa_y$ to true because there are no constraints on $\kappa_x$ and $\kappa_y$.
+This says that \lstinline{max} can be called by any integer.
+For $\kappa$ we consider each case seperatly and do the same as for predicate abstraction.
+The first constraint simplifies then to $x > y \land \nu = x \Rightarrow \kappa$.
+Therefore we obtain $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$ for the first constraint.
+The second constraint simplifies to $\neg(x > y) \land \nu = y \Rightarrow \kappa$
+which results in $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$.
+By joining the information of both branches we have $\kappa := x \le \nu \land y \le \nu$.
 Thus we obtain the type:
 \begin{center}
     \lstinline{max} :: $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu\}$.
 \end{center}
 
-%recursion
-%higher-order functions
-%polymorphism and array bounds checking
+This example shows that the analysis is path sensitive by adding conditions to the environment.
+The analysis can also handle recursion, higher-order functions and polymorphism.
 
 \subsubsection{Details}
 
@@ -323,12 +325,9 @@ As example consider $x:$ \lstinline{int}; $y:$ \lstinline{int}; $(x > y) \vdash 
 The liquid type judgement $\Gamma \vdash_{\mathbb{Q}} e: T$ says that the expression $e$ has type $T$ under environment $\Gamma$ if one considers the logical qualifiers $\mathbb{Q}$.
 For example we can show $\Gamma \vdash_{\mathbb{Q}}$ \lstinline{let} $s$ \lstinline{= sum (k - 1) in s + k} $: T$ if $T$ is well-formed under $\Gamma$ and the refinements of $T$ consists of conjunctions over logical qualifiers in $\mathbb{Q}^\star$, plus
 $\Gamma \vdash_{\mathbb{Q}}$ \lstinline{sum (k - 1)} $:T_1$ and $\Gamma; x: T_1 \vdash_{\mathbb{Q}}$ \lstinline{s + k} $: T$.
-Soundness of this liquid type checking is proven in two steps.
-Firstly, one defines an exact type system $\Gamma \vdash e: T$ using an undecidable subtype judgment.
 Then soundness is obtained using the following theorems, where $\succ$ is the single evaluation step relation:
 \begin{enumerate}
     \label{thm:sound}
-    \item (Overapproximation) If $\Gamma \vdash_{\mathbb{Q}} e: T$ then $\Gamma \vdash e: T$.
     \item (Preservation) If $\Gamma \vdash e: T$ and $e \succ e'$ then $\Gamma \vdash e': T$.
     \item (Progress) If $\emptyset \vdash e: T$ and $e$ is not a value then $\exists e'. e \succ e'$.
 \end{enumerate}
@@ -338,21 +337,22 @@ The 3 steps of the type inference can be implemented in the formal setting.
 Also for this algorithm called \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) one can show some theorems:
 \begin{enumerate}
     \item \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) terminates.
-    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q} = T$ then $\Gamma \vdash_{\mathbb{Q}} e: T$.
+    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q}) = T$ then $\Gamma \vdash_{\mathbb{Q}} e: T$.
     \item If \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) returns no type then $\nexists T.\, \Gamma \vdash_{\mathbb{Q}} e: T$.
 \end{enumerate}
 
-Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q} = T$ then the evalution of $e$ won't get stuck.
+Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q}) = T$ then the evalution of $e$ will not get stuck.
 
 \subsubsection{Evaluation}
 
 In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
-To allow array bounds checking the qualifiers are of the form $\nu \bowtie X$ where $\bowtie \in \{<, \le, =, \neq, \geq, >\}$ and $X \in \{0, \star,$ \lstinline{len} $\star$\}.
-In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. qualifiers.
-If qualifiers are missing the infered types help to identify which ones should be added.
+To allow array bounds checking the predicates are comparisons (i.e. $<, \le, =, \neq, \geq, >$) between $\nu$ and 0, program variables plus length of arrays.
+In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. predicates.
+If predicates are missing the infered types help to identify which ones should be added.
 Compared to the \textbf{DML} project the impact is very big.
-Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} only needs 1\% of lines and characters.
+Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} needs less than 1\% of lines and characters.
+
 
   \subsection{Refinement Types For Haskell}
 

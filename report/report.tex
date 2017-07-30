@@ -30,32 +30,32 @@
 \section{Introduction}
 \label{sec:intro}
 
-  Many programming languages employ type system to enforces a certain notion of
-  a program correctness. For example, a function $+$ that adds two numbers
-  when defined correctly should only be applied to numbers and nothing else (which
+  Programming languages employ type systems to enforce a certain notion of a
+  program correctness. For example, a function $+$ that adds two numbers when
+  defined correctly should only be applied to numbers and nothing else (which
   is reflected by the types of the arguments). A typechecker ensures that a
   program is well-typed, that is, everything has a well-defined type, by
-  statically checking the type of every part of a program during the compilation
-  time.  When one tries to call call $+$ on a number and a boolean, typechecker
+  statically checking the type of every program part during the compilation
+  time.  When one tries to call $+$ on a number and a boolean, typechecker
   rejects the program as not well-typed.
 
-  However, well-typed programs can still go wrong.  Standard type systems found
-  in mainstream programming language such as C, Java, or even the more advanced
-  ones in ML or Haskell can't prevent some bad runtime behaviors such as
-  division by zero. The idea of extending types and type systems to become more
-  expressive has been well studied. In particular, there is a notion of
+  However, well-typed programs can still go wrong. Standard type systems found
+  in mainstream programming languages such as C, Java, or even the more
+  advanced ones in ML or Haskell can't prevent some bad runtime behaviors such
+  as division by zero. The idea of extending types and type systems to become
+  more expressive has been well studied. In particular, there is a notion of
   dependent types, which are the types that depend on some values. Starting
   with statically checking array bound satisfaction as a motivating example,
-  dependent types have spawned many subsequent developments, two of which will
-  be presented in this report.
+  dependent types have spawned numerous subsequent developments, two of which
+  are presented in this report.
 
-  In this summary, we will begin with the high-level notion of dependent types
-  \cite{Xi:1998:EAB}. We will then proceed with a brief explanation of Liquid
+  In this summary, we begin with the high-level notion of dependent types
+  \cite{Xi:1998:EAB}. Then we proceed with a brief explanation of Liquid
   Types~\cite{Rondon:2008:LT}, which is types \emph{refined} with predicates
   that build on the idea of dependent types. In particular, Liquid Types make
   it possible to reduce the number of type annotations needed and also retain
-  the benefit of dependent types.  Finally, we summarizes the approach taken to
-  bring Liquid Types under lazy evaluation settings~\cite{Vazou:ICFP:2014}.
+  the benefit of dependent types.  Finally, we summarize a way to bring Liquid
+  Types under lazy evaluation settings~\cite{Vazou:ICFP:2014}.
 
   % This is from of the template
   In high-level terms

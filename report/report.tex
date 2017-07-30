@@ -157,7 +157,7 @@ t} for the universal quantification (often written in the literature as $\Pi a:
 ($\Sigma a: \gamma. \tau$).  $\{ a: g | b \}$ corresponds to those elements of
 a type $g$ that satisfy the boolean constraints $b$. There's also a shorthand
 \texttt{\{a:g | b\} t} for $\Pi a: \{a: \gamma | b\}. \tau$. And then $nat$
-serves as an abbreviation for $\{ a: int | a \geq 0 \}$.
+serves as an abbreviation for \texttt{\{ a: int | a >= 0 \}}.
 
 \begin{lstlisting}[caption={The filter function for lists},label=filter,captionpos=t,float,abovecaptionskip=-\medskipamount]
 fun filter p nil = nil

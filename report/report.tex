@@ -251,7 +251,7 @@ This choice depends on the property one wants to show by the analysis.
 For example one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu <$ \lstinline{len} $a\}$.
 This type ensures that accessing array $a$ at index $i$ is safe.
 Note that we used a predicate which compares the special value variable $\nu$ with the length of the array $a$.
-To infer such types automatically 3 steps are executed:
+To infer such types automatically 3 steps are executed:\\
 \begin{enumerate}
     \item Step 1 performs a classical type inference as seen in class.
         The obtained types are transformed into templates where the unknown type refinements are expressed by so called liquid type variables.
@@ -273,8 +273,8 @@ The liquid type variables $\kappa_x, \kappa_y, \kappa$ are the unknown refinemen
 Step 2 generates the following constraints since the body is an \lstinline{if}-expression:
 \begin{align}
     \label{algn:max}
-    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu: \texttt{int} \mid \nu = x \} <: \kappa\\
-    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu: \texttt{int} \mid \nu = y \} <: \kappa
+    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu: \text{\lstinline|int|} \mid \nu = x \} <: \kappa\\
+    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu: \text{\lstinline|int|} \mid \nu = y \} <: \kappa
 \end{align}
 The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu:$ \lstinline{int} $\mid \nu = x \}$) to be a subtype
 of the body ($\kappa$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
@@ -298,42 +298,12 @@ Thus we obtain the type:
 This example shows that the analysis is path sensitive by adding conditions to the environment.
 The analysis can also handle recursion, higher-order functions and polymorphism.
 
-\iffalse
-\subsubsection{Formalization}
-
-In order to formalize liquid type checking the simply typed lambda calculus is extended with \lstinline{if}- and \lstinline{let}-expressions plus polymorhism and dependent types.
-The typing rules are extended to accommodate those changes.
-The liquid type judgement $\Gamma \vdash e: T$ says that the expression $e$ has type $T$ under environment $\Gamma$,
-where the environment $\Gamma$ consists of type bindings ($x: T$) and predicates.
-
-In addition there is also a decidable subtype judgment $\Gamma \vdash T_1 <: T_2$ stating that $T_1$ is a subtype of $T_2$ under environment $\Gamma$.
-Decidablity is obtained by using a translation into a decidable logic.
-
-Then type safety is obtained using the following theorems, where $\succ$ is the single evaluation step relation:
-\begin{enumerate}
-    \label{thm:sound}
-    \item (Preservation) If $\Gamma \vdash e: T$ and $e \succ e'$ then $\Gamma \vdash e': T$.
-    \item (Progress) If $\emptyset \vdash e: T$ and $e$ is not a value then $\exists e'. e \succ e'$.
-\end{enumerate}
-
-The 3 steps of the type inference can be implemented in the formal setting.
-One can show that if this terminating algorithm returns a type 
-Also for this terminating algorithm one can show some theorems:
-\begin{enumerate}
-    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q}) = T$ then $\Gamma \vdash e: T$.
-    %\item If \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) returns no type then $\nexists T.\, \Gamma \vdash e: T$.
-\end{enumerate}
-
-Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q}) = T$ then the evalution of $e$ will not get stuck.
-\fi
-
 \subsubsection{Evaluation}
 
 In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
-To allow array bounds checking the predicates compare ($<, \le, =, \neq, \geq, >$) $\nu$ with 0, program variables and the length of arrays.
-In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. predicates.
-If predicates are missing the inferred types help to identify which ones should be added.
+To allow array bounds checking predicates which compare ($<, \le, =, \neq, \geq, >$) $\nu$ with 0, program variables and the length of arrays are used.
+In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations, i.e. predicates.
 Compared to the \textbf{DML} project the impact is very big.
 Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} needs less than 1\% of lines and characters.
 

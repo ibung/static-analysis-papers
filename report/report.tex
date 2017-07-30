@@ -30,34 +30,32 @@
 \section{Introduction}
 \label{sec:intro}
 
-  Many programming languages have some sort of type system that enforces a
-  certain notion of correctness from a program.  For example, a function that
-  adds two numbers, when defined correctly, should only works on numbers and
-  nothing else (which are reflected on the type of its arguments).  A
-  typechecker ensures that a program is well-typed, that is, everything has a
-  well-defined type, by statically checking the type of every part of a program
-  (usually) during compile time.  In this particular example, trying to call
-  the addition function on a number and a boolean valua should make the
-  typechecker rejects the program as not well-typed.
+  Programming languages employ type systems to enforce a certain notion of a
+  program correctness. For example, a function $+$ that adds two numbers when
+  defined correctly should only be applied to numbers and nothing else (which
+  is reflected by the types of the arguments). A typechecker ensures that a
+  program is well-typed, that is, everything has a well-defined type, by
+  statically checking the type of every program part during the compilation
+  time.  When one tries to call $+$ on a number and a boolean, typechecker
+  rejects the program as not well-typed.
 
-  However, well-typed programs can still go wrong.  Standard type systems found
-  in mainstream programming language such as C, Java, or even the more advanced
-  ones in ML or Haskell can't prevent some bad runtime behaviors such as
-  division by zero.  Thus there have been some research on extending types and
-  type systems to become more expressive.  In particular, there is a notion of
-  Dependent Types, which are types that depend on some values.  Starting with
-  statically checking array bound as a motivating example, Dependent Types
-  have spawned many subsequent researches, two of which will be presented in
-  this report.
+  However, well-typed programs can still go wrong. Standard type systems found
+  in mainstream programming languages such as C, Java, or even the more
+  advanced ones in ML or Haskell can't prevent some bad runtime behaviors such
+  as division by zero. The idea of extending types and type systems to become
+  more expressive has been well studied. In particular, there is a notion of
+  dependent types, which are the types that depend on some values. Starting
+  with statically checking array bound satisfaction as a motivating example,
+  dependent types have spawned numerous subsequent developments, two of which
+  are presented in this report.
 
-  In this summary, we will begin with the high-level summary Dependent Types
-  itself~\cite{Xi:1998:EAB}.  We will then proceed with a brief explanation of
-  Liquid Types~\cite{Rondon:2008:LT}, which is types \emph{refined} with
-  predicates that builds on the ideas of Dependent Types.  In particular,
-  Liquid Types make it possible to reduce the number of annotation needed while
-  at the same time retains the benefit of Dependent Types.  Finally, we
-  summarizes the approach taken to bring Liquid Types under lazy evaluation
-  settings~\cite{Vazou:ICFP:2014}.
+  In this summary, we begin with the high-level notion of dependent types
+  \cite{Xi:1998:EAB}. Then we proceed with a brief explanation of Liquid
+  Types~\cite{Rondon:2008:LT}, which is types \emph{refined} with predicates
+  that build on the idea of dependent types. In particular, Liquid Types make
+  it possible to reduce the number of type annotations needed and also retain
+  the benefit of dependent types.  Finally, we summarize a way to bring Liquid
+  Types under lazy evaluation settings~\cite{Vazou:ICFP:2014}.
 
   % This is from of the template
   In high-level terms
@@ -452,15 +450,14 @@ Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are a
 
 \section{Context and Connection (feel free to change the section names)}
 
-  As briefly mentioned in section~\ref{sec:intro}, Dependent Types and its
-  subsequent improvements are extensions to the standard type systems discussed
-  in the class.  These extensions make the type system more expressive and thus
-  enable it to prove (and enforce) more properties.
+  Dependent types and the subsequent improvements are extensions to the simple
+  type systems discussed in the class. These extensions make the type system
+  more expressive and thus enable it to check more program properties.
 
-  From Dependent Types, Liquid Types takes the idea of refinement types further
-  and enable automatic inference of types thus reducing the need for manual
-  type annotations.  Lastly, LIQUIDHASKELL fixed the soundness of Liquid Types
-  under lazy evaluation while retains its advantage of automatic type
+  From the dependent types, Liquid Types takes the idea of type refinement
+  further and enables automatic type inference, reducing the need for manual
+  type annotations. Lastly, LIQUIDHASKELL addresses the soundness of Liquid
+  Types under lazy evaluation while retaining the advantages of automatic type
   inference.
 
   % This is from the template

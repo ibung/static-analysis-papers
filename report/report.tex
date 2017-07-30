@@ -235,104 +235,78 @@ in the programs.
 
 \subsection{Paper 2: Liquid Types}
 
-\subsubsection{Goal/Problem}
+\subsubsection{Problem}
+
+The approach presented by the previous paper~\cite{Xi:1998:EAB} needs many manual type annotations.
+This is tedious and sometimes it is not easy to come up with the correct dependent type.
+Therefore Rondon et al. introduced logically qualified data types or short liquid types~\cite{Rondon:2008:LT}.
+The advantage of liquid types is that those types can be inferred automatically.
 
 \subsubsection{Main Idea}
 
-Rondon et al. introduced logically qualified data types or short Liquid types in~\cite{Rondon:2008:LT}.
-Liquid types are dependent types and thus one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu < 100\}$.
-If one thinks of $i$ as an index of an array with 100 elements the type ensures that one can safely access the array at index $i$.
-The advantage of liquid types is that those types can be infered automatically.
-The inference is done in 3 steps:
+Liquid types are dependent types where we restrict the refinements to conjunctions of predicates (qualifiers) and their negations.
+This restriction is similar to predicate abstraction.
+But unlike for predicate abstraction the set of predicates are chosen manually and not by examining the program code.
+This choice depends on the property one wants to show by the analysis.
+For example one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu <$ \lstinline{len} $a\}$.
+This type ensures that accessing array $a$ at index $i$ is safe.
+Note that we used a predicate which compares the special value variable $\nu$ with the length of the array $a$.
+To infer such types automatically 3 steps are executed:\\
 \begin{enumerate}
-    \item Step 1 performs a classical type inference.
+    \item Step 1 performs a classical type inference as seen in class.
         The obtained types are transformed into templates where the unknown type refinements are expressed by so called liquid type variables.
     \item Step 2 generates a set of subtype constraints which restrict choices for the liquid type variables.
         This step is guided by the syntax.
     \item Step 3 tries to solve these constraints by embedding them into a decidable logic.
 \end{enumerate}
 
-To describe the refinements of liquid types we take a set of predicates (qualifiers) over program variables and a special variable $\nu$.
-By taking conjunctions of qualifiers from $P \cup \neg P$ we get refinements of liquid types.
-A base type $B$ is a short form of $\{\nu: B \mid true\}$.
-We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ if the base type $B$ is clear from the context.
-%how to choose $P$
-
 \begin{lstlisting}[caption={Example Program},label=lst:exmpl,captionpos=t,float,abovecaptionskip=-\medskipamount]
 let max x y =
     if x > y then x else y
 \end{lstlisting}
 
-%path sensitive
-We will show that the function \lstinline{max} in Listing~\ref{lst:exmpl} returns a value which is greater or equal to both arguments.
+To illustrate those 3 steps we look at an example in listing~\ref{lst:exmpl}.
 In step 1 classical type inference yields the type $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int} for \lstinline{max}.
 Using this type we build the template $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$.
+We use $\kappa$ as abbreviation for $\{ \nu:$ \lstinline{int} $\mid \kappa\}$ and similar for $\kappa_x$ and $\kappa_y$.
 The liquid type variables $\kappa_x, \kappa_y, \kappa$ are the unknown refinements for the arguments $x$ and $y$ plus the body of \lstinline{max}.
 Step 2 generates the following constraints since the body is an \lstinline{if}-expression:
 \begin{align}
     \label{algn:max}
-    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu: \texttt{int} \mid \nu = x \} <: \kappa\\
-    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu: \texttt{int} \mid \nu = y \} <: \kappa
+    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu: \text{\lstinline|int|} \mid \nu = x \} <: \kappa\\
+    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu: \text{\lstinline|int|} \mid \nu = y \} <: \kappa
 \end{align}
-The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu: \texttt{int} \mid \nu = x \}$) to be a subtype
+The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu:$ \lstinline{int} $\mid \nu = x \}$) to be a subtype
 of the body ($\kappa$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
-The second contraint is analogous.
+The second contraint is analogous for the \lstinline{else}-branch.
 Note that in the environment the branch condition is false.
-So path sensitivity is introduced by adding assumptions to the environment.
-In step 3 we set $\kappa_x$ and $\kappa_y$ to true because \lstinline{max} can be called by any integer.
-Moreover we use a theorem prover to get the strongest conjunction of qualifiers in $\mathbb{Q}^\star$ for $\kappa$ which staisfies the two constraints.
-We get $x \le \nu \land y \le \nu$ since if $x > y \land \nu = x$ then $x \le \nu \land y \le \nu$ and if $\neg(x > y) \land \nu = y$
-then $x \le \nu \land y \le \nu$.
+Step 3 translates these two constraints into a decidable logic and solves them using the predicates $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$.
+First we set $\kappa_x$ and $\kappa_y$ to true because there are no constraints on $\kappa_x$ and $\kappa_y$.
+This says that \lstinline{max} can be called by any integer.
+For $\kappa$ we consider each case seperatly and build a conjunction of provable predicates and provable negated predicates.
+This is again similar to predicate abstraction.
+The first constraint simplifies then to $x > y \land \nu = x \Rightarrow \kappa$.
+Therefore we obtain $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$ for the first constraint.
+The second constraint simplifies to $\neg(x > y) \land \nu = y \Rightarrow \kappa$
+which results in $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$.
+By joining the information of both branches we have $\kappa := x \le \nu \land y \le \nu$.
 Thus we obtain the type:
 \begin{center}
     \lstinline{max} :: $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu\}$.
 \end{center}
 
-%recursion
-%higher-order functions
-%polymorphism and array bounds checking
-
-\subsubsection{Details}
-
-The liquid type checking is formalized in a $\lambda$-calculus with \lstinline{if}- and \lstinline{let}-expressions, recursive funtions and polymorphism.
-Intuitively a liquid type $T$ is well-formed under the environment $\Gamma$ ($\Gamma \vdash T$) if the free variables occuring in the refinements of $T$ are bound in $\Gamma$.
-The environment $\Gamma$ consists of type bindings ($x: T$) and predicates.
-For example we can say that $\{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu$ is well-formed under $x:$ \lstinline{int}; $y:$ \lstinline{int}.
-In addition there is also a decidable subtype judgment $\Gamma \vdash T_1 <: T2$ stating that $T_1$ is a subtype of $T_2$ under environment $\Gamma$.
-As example consider $x:$ \lstinline{int}; $y:$ \lstinline{int}; $(x > y) \vdash \{\nu = x \} <: x \le \nu \land y \le \nu$
-The liquid type judgement $\Gamma \vdash_{\mathbb{Q}} e: T$ says that the expression $e$ has type $T$ under environment $\Gamma$ if one considers the logical qualifiers $\mathbb{Q}$.
-For example we can show $\Gamma \vdash_{\mathbb{Q}}$ \lstinline{let} $s$ \lstinline{= sum (k - 1) in s + k} $: T$ if $T$ is well-formed under $\Gamma$ and the refinements of $T$ consists of conjunctions over logical qualifiers in $\mathbb{Q}^\star$, plus
-$\Gamma \vdash_{\mathbb{Q}}$ \lstinline{sum (k - 1)} $:T_1$ and $\Gamma; x: T_1 \vdash_{\mathbb{Q}}$ \lstinline{s + k} $: T$.
-Soundness of this liquid type checking is proven in two steps.
-Firstly, one defines an exact type system $\Gamma \vdash e: T$ using an undecidable subtype judgment.
-Then soundness is obtained using the following theorems, where $\succ$ is the single evaluation step relation:
-\begin{enumerate}
-    \label{thm:sound}
-    \item (Overapproximation) If $\Gamma \vdash_{\mathbb{Q}} e: T$ then $\Gamma \vdash e: T$.
-    \item (Preservation) If $\Gamma \vdash e: T$ and $e \succ e'$ then $\Gamma \vdash e': T$.
-    \item (Progress) If $\emptyset \vdash e: T$ and $e$ is not a value then $\exists e'. e \succ e'$.
-\end{enumerate}
-
-The 3 steps of the type inference can be implemented in the formal setting.
-%The examples given in Subsection~\ref{subsec:exmpl} illustrate some cases of this algorithm.
-Also for this algorithm called \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) one can show some theorems:
-\begin{enumerate}
-    \item \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) terminates.
-    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q} = T$ then $\Gamma \vdash_{\mathbb{Q}} e: T$.
-    \item If \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) returns no type then $\nexists T.\, \Gamma \vdash_{\mathbb{Q}} e: T$.
-\end{enumerate}
-
-Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q} = T$ then the evalution of $e$ won't get stuck.
+This example shows that the analysis is path sensitive by adding conditions to the environment.
+The analysis can also handle recursion, higher-order functions and polymorphism.
 
 \subsubsection{Evaluation}
 
 In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
-To allow array bounds checking the qualifiers are of the form $\nu \bowtie X$ where $\bowtie \in \{<, \le, =, \neq, \geq, >\}$ and $X \in \{0, \star,$ \lstinline{len} $\star$\}.
-In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. qualifiers.
-If qualifiers are missing the infered types help to identify which ones should be added.
+To allow array bounds checking predicates which compare ($<, \le, =, \neq, \geq, >$) $\nu$ with 0, program variables and the length of arrays are used.
+In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations, i.e. predicates.
 Compared to the \textbf{DML} project the impact is very big.
-Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} only needs 1\% of lines and characters.
+Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} needs less than 1\% of lines and characters.
+
 
   \subsection{Refinement Types For Haskell}
 

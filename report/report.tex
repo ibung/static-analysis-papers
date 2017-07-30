@@ -251,7 +251,7 @@ This choice depends on the property one wants to show by the analysis.
 For example one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu <$ \lstinline{len} $a\}$.
 This type ensures that accessing array $a$ at index $i$ is safe.
 Note that we used a predicate which compares the special value variable $\nu$ with the length of the array $a$.
-To infer such types automatically 3 steps are executed:\\
+To infer such types automatically 3 steps are executed:\medskip
 \begin{enumerate}
     \item Step 1 performs a classical type inference as seen in class.
         The obtained types are transformed into templates where the unknown type refinements are expressed by so called liquid type variables.
@@ -278,12 +278,12 @@ Step 2 generates the following constraints since the body is an \lstinline{if}-e
 \end{align}
 The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu:$ \lstinline{int} $\mid \nu = x \}$) to be a subtype
 of the body ($\kappa$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
-The second contraint is analogous for the \lstinline{else}-branch.
+The second constraint is analogous for the \lstinline{else}-branch.
 Note that in the environment the branch condition is false.
 Step 3 translates these two constraints into a decidable logic and solves them using the predicates $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$.
 First we set $\kappa_x$ and $\kappa_y$ to true because there are no constraints on $\kappa_x$ and $\kappa_y$.
 This says that \lstinline{max} can be called by any integer.
-For $\kappa$ we consider each case seperatly and build a conjunction of provable predicates and provable negated predicates.
+For $\kappa$ we consider each case separately and build a conjunction of provable predicates and provable negated predicates.
 This is again similar to predicate abstraction.
 The first constraint simplifies then to $x > y \land \nu = x \Rightarrow \kappa$.
 Therefore we obtain $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$ for the first constraint.

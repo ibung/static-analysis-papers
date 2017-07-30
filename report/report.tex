@@ -48,9 +48,9 @@ depend on some values. Starting with statically checking array bound
 satisfaction as a motivating example, dependent types have spawned numerous
 subsequent developments, two of which are presented in this report.
 
-In this report, we begin with the high-level notion of dependent types and
-their restrictions applied to eliminate array bound checking
-\cite{Xi:1998:EAB}. Then we proceed with a brief explanation of Liquid
+In this report, we begin with a high-level notion of dependent types, their
+restrictions, and their application to eliminate array bound checking during
+runtime \cite{Xi:1998:EAB}. Then we proceed with a brief explanation of Liquid
 Types~\cite{Rondon:2008:LT}, which is types \emph{refined} with predicates that
 build on the idea of dependent types. In particular, Liquid Types make it
 possible to reduce the number of type annotations needed and also retain the
@@ -314,12 +314,12 @@ Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are a
 
       Some programming languages, most notably Haskell, use a different
       evaluation strategy called lazy evaluation.  Intuitively, lazy evaluation
-      means that computations is only performed if the results of those
+      means that computations are performed only if the results of those
       computations are needed.  For example, if a program specifies that the
-      result of \texttt{div 10 5} be printed on screen, then the this
-      computation i.e. divide 10 by 5 will be computed.  Conversely, if the
-      result of \texttt{div 10 5} is never needed, then it will never return a
-      value.  
+      result of \texttt{div 10 5} be printed on screen, then this computation
+      i.e. divide 10 by 5 will be performed.  Conversely, if the result of
+      \texttt{div 10 5} is never needed, then the computation will never be
+      performed.
 
       It turns out that classical approach on refinement types is unsound under
       lazy evaluation, in the sense that the typechecker will admit some bad
@@ -408,8 +408,8 @@ Simple type checking as seen in the class cannot capture some bad behaviours
 that impose conditions on the types used in the program (for instance, simple
 type annotations cannot express that a function should take integers only from
 a certain range). The core idea of all three papers is to use dependent types
-to make type systems more expressive and allow to check more complex program
-properties
+to make type systems more expressive and thus able to check more complex
+program properties
 
 As seen in the first paper, initial attempts to apply the dependent types for
 the purpose of the static program analysis require comparatively many type
@@ -418,7 +418,7 @@ annotations to work.
 Second paper describing Liquid Types presents the improvement on the previous
 idea, being able to infer most annotations automatically.
 
-Finally, the subject of the third paper LIQUIDHASKELL addresses the soundness
+Finally, the subject of the third paper, LIQUIDHASKELL, addresses the soundness
 of Liquid Types under lazy evaluation while retaining the advantages of
 automatic type inference.
 

@@ -11,7 +11,7 @@
 \bibliographystyle{plainurl}% the recommended bibstyle
 
 % Author macros::begin %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{Advanced Type-Based Analysis: Summary of Selected Papers}
+\title{Advanced Type-Based Analysis: Final Report}
 
 %% Add all author names here
 \author[1]{Nikita Ziuzin}
@@ -28,7 +28,8 @@
 
 
 \section{Introduction}
-  
+\label{sec:intro}
+
   Many programming languages have some sort of type system that enforces a
   certain notion of correctness from a program.  For example, a function that
   adds two numbers, when defined correctly, should only works on numbers and
@@ -37,7 +38,7 @@
   well-defined type, by statically checking the type of every part of a program
   (usually) during compile time.  In this particular example, trying to call
   the addition function on a number and a boolean valua should make the
-  typechecker rejects the program as not well-typed.  
+  typechecker rejects the program as not well-typed.
 
   However, well-typed programs can still go wrong.  Standard type systems found
   in mainstream programming language such as C, Java, or even the more advanced
@@ -387,198 +388,67 @@ types application for the purposes of static analysis. The ideas got
 implemented in form of DML dialect of ML \cite{XiPhd:1998} and inspired further
 developments in refinement types.
 
-\section{Paper 2: Liquid Types}
 
-\subsection{Introduction}
+\subsection{Paper 2: Liquid Types}
 
-Rondon et al. introduced Logically Qualified Data Types or short Liquid Types in~\cite{Rondon:2008:LT}.
+\subsubsection{Goal/Problem}
+
+\subsubsection{Main Idea}
+
+Rondon et al. introduced logically qualified data types or short Liquid types in~\cite{Rondon:2008:LT}.
 Liquid types are dependent types and thus one can express types like $i:: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu < 100\}$.
 If one thinks of $i$ as an index of an array with 100 elements the type ensures that one can safely access the array at index $i$.
 The advantage of liquid types is that those types can be infered automatically.
 The inference is done in 3 steps:
 \begin{enumerate}
-    \item Step 1 performs a standard Hindley-Milner (HM) type inference.
+    \item Step 1 performs a classical type inference.
         The obtained types are transformed into templates where the unknown type refinements are expressed by so called liquid type variables.
     \item Step 2 generates a set of subtype constraints which restrict choices for the liquid type variables.
         This step is guided by the syntax.
     \item Step 3 tries to solve these constraints by embedding them into a decidable logic.
 \end{enumerate}
 
-To describe the refinements of liquid types we take a set of predicates (qualifiers) over program variables, a special variable $\nu$ and a placeholder $\star$ for program variables.
-To illustrade this we choose $\mathbb{Q} = \{ 0 \le \nu, \star \le \nu, \nu < \star, \nu <$ \lstinline{len} $\star\}$.
-The set $\mathbb{Q}^\star$ contains all qualifiers which are obtained by choosing a qualifier from $\mathbb{Q}$ and replace the $\star$-s by program variables.
-So $0 \le \nu, x \le \nu, \nu < n$ and $\nu <$ \lstinline{len} $a$ are contained in $\mathbb{Q}^\star$.
-By taking conjunctions of qualifiers from $\mathbb{Q}^\star$ we get refinements of liquid types.
-We use some abbreviations.
-A type $B$ is short for $\{\nu: B \mid true\}$.
-We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ and $\{e\}$ for $\{\nu: B \mid e\}$ with a predicate $e$ if the type $B$ is clear from the context.
-
-\subsection{Examples}
-\label{subsec:exmpl}
-
-In this subsection several properties of liquid types are shown using examples.
-Each example illustrates how liquid types interact with a given language feature.
+To describe the refinements of liquid types we take a set of predicates (qualifiers) over program variables and a special variable $\nu$.
+By taking conjunctions of qualifiers from $P \cup \neg P$ we get refinements of liquid types.
+A base type $B$ is a short form of $\{\nu: B \mid true\}$.
+We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ if the base type $B$ is clear from the context.
+%how to choose $P$
 
 \begin{lstlisting}[caption={Example Program},label=lst:exmpl,captionpos=t,float,abovecaptionskip=-\medskipamount]
 let max x y =
     if x > y then x else y
-
-let rec sum k =
-    if k < 0 then 0 else
-        let s = sum (k - 1)
-        in s + k
-
-let foldn n b f =
-    let rec loop i c =
-        if i < n then loop (i + 1) (f i c) else c
-    in loop 0 b
-
-let arraymax a =
-    let am l m = max (sub a l) m
-    in foldn (len a) 0 am
 \end{lstlisting}
 
-\subsubsection{Path Sensitivity}
-
+%path sensitive
 We will show that the function \lstinline{max} in Listing~\ref{lst:exmpl} returns a value which is greater or equal to both arguments.
-In step 1 HM yields the type $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int} for \lstinline{max}.
-Using this type we build the template $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa_1$.
-The liquid type variables $\kappa_x, \kappa_y, \kappa_1$ are the unknown refinements for the arguments $x$ and $y$ plus the body of \lstinline{max}.
+In step 1 classical type inference yields the type $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow$ \lstinline{int} for \lstinline{max}.
+Using this type we build the template $x: \kappa_x \rightarrow y: \kappa_y \rightarrow \kappa$.
+The liquid type variables $\kappa_x, \kappa_y, \kappa$ are the unknown refinements for the arguments $x$ and $y$ plus the body of \lstinline{max}.
 Step 2 generates the following constraints since the body is an \lstinline{if}-expression:
 \begin{align}
     \label{algn:max}
-    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu = x \} <: \kappa_1\\
-    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu = y \} <: \kappa_1
+    x: \kappa_x; y: \kappa_y; (x > y) \vdash \{\nu: \texttt{int} \mid \nu = x \} <: \kappa\\
+    x: \kappa_x; y: \kappa_y; \neg(x > y) \vdash \{\nu: \texttt{int} \mid \nu = y \} <: \kappa
 \end{align}
-The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu = x \}$) to be a subtype of the body ($\kappa_1$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
+The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu: \texttt{int} \mid \nu = x \}$) to be a subtype
+of the body ($\kappa$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
 The second contraint is analogous.
 Note that in the environment the branch condition is false.
 So path sensitivity is introduced by adding assumptions to the environment.
 In step 3 we set $\kappa_x$ and $\kappa_y$ to true because \lstinline{max} can be called by any integer.
-Moreover we use a theorem prover to get the strongest conjunction of qualifiers in $\mathbb{Q}^\star$ for $\kappa_1$ which staisfies the two constraints.
-We get $x \le \nu \land y \le \nu$ since if $x > y \land \nu = x$ then $x \le \nu \land y \le \nu$ and if $\neg(x > y) \land \nu = y$ then $x \le \nu \land y \le \nu$.
+Moreover we use a theorem prover to get the strongest conjunction of qualifiers in $\mathbb{Q}^\star$ for $\kappa$ which staisfies the two constraints.
+We get $x \le \nu \land y \le \nu$ since if $x > y \land \nu = x$ then $x \le \nu \land y \le \nu$ and if $\neg(x > y) \land \nu = y$
+then $x \le \nu \land y \le \nu$.
 Thus we obtain the type:
 \begin{center}
     \lstinline{max} :: $x:$ \lstinline{int} $\rightarrow y:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu\}$.
 \end{center}
 
+%recursion
+%higher-order functions
+%polymorphism and array bounds checking
 
-\subsubsection{Recursion}
-
-Now we show that the recursive function \lstinline{sum} from Listing~\ref{lst:exmpl} returns a non-negative integer not less than the argument $k$.
-HM in step 1 yields $k:$ \lstinline{int} $\rightarrow y:$ \lstinline{int}.
-We obtain the template $k: \kappa_k \rightarrow \kappa_2$, where $\kappa_k$ is the refinement for $k$ and $\kappa_2$ the refinement for the body of \lstinline{sum}.
-As the body is again an \lstinline{if}-expression we generate two constraints in step 2.
-Let us consider the \lstinline{then}-branch first:
-\begin{align}
-    \label{algn:sum-then}
-    \text{\lstinline|sum|}: k: \kappa_k \rightarrow \kappa_2; k: \kappa_k; k < 0 \vdash \{\nu = 0\} <: \kappa_2
-\end{align}
-Like in the case for \lstinline{max} we added the branch condition to the environment.
-Also we added the type of \lstinline{sum} to the environment since the function is recursive.
-For the \lstinline{else}-branch we first look at the recursive call.
-\begin{align}
-    \label{algn:s}
-    \text{\lstinline|sum|}: k: \kappa_k \rightarrow \kappa_2; k: \kappa_k; \neg(k < 0) \vdash \{\nu = k - 1\} <: \kappa_k
-\end{align}
-This constraint forces the argument $k - 1$ for the call of \lstinline{sum} to be a member of the yet unknown type of the argument.
-For the variable $s$ we have to replace the paramater $k$ in $\kappa_2$ by the actual argument $k - 1$ of this call.
-So we get:
-\begin{align}
-    \label{algn:sum-in}
-    \text{\lstinline|sum|}: k: \kappa_k \rightarrow \kappa_2; k: \kappa_k; \neg(k < 0); s: [k-1/k]\kappa_2 \vdash \{\nu = s + k\} <: \kappa_2
-\end{align}
-Step 3 searches for the strongest conjunction of qualifiers for $\kappa_k$ and $\kappa_2$.
-If we look at constraint~(\ref{algn:s}) we must set $\kappa_k$ to true since $k - 1$ can be negative, zero or positive.
-For $\kappa_2$ we use $0 \le \nu \land k \le \nu$.
-We observe that constraint~(\ref{algn:sum-then}) is trivially satisfied.
-The binding for $s$ in the constraint~(\ref{algn:sum-in}) simplifies to $s: 0 \le \nu \land k - 1 \le \nu$.
-So we have to show that $\neg(k < 0) \land 0 \le s \land k - 1 \le s \land \nu = s + k$ implies $0 \le \nu \land k \le \nu$.
-The statement is valid since $k$ and $s$ are both non-negative.
-The essential point of this example is that recursion is introduce through the variable $s$ which stores the result of the recursive call.
-Overall we get:
-\begin{center}
-    \lstinline{sum} :: $k:$ \lstinline{int} $\rightarrow \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land k \land \nu \}$
-\end{center}
-
-\subsubsection{Higher-Order Functions}
-As an example for a higher-order function we look at \lstinline{foldn} (Listing~\ref{lst:exmpl}).
-We want to show that the first argument of $f$ is always between $0$ and $n$.
-In step 1 we first get the polymorphic type for \lstinline{foldn}
-$\forall \alpha.\,n:$ \lstinline{int} $\rightarrow b: \alpha \rightarrow f:($ \lstinline{int} $\rightarrow \alpha \rightarrow \alpha) \rightarrow \alpha$.
-This yields the template
-$\forall \alpha.\,n: \kappa_n \rightarrow b: \alpha \rightarrow f:(\kappa_3 \rightarrow \alpha \rightarrow \alpha) \rightarrow \alpha$.
-For \lstinline{loop} we get the template $i: \kappa_i \rightarrow c: \alpha \rightarrow \alpha$.
-In step 2 we examine the two interesting cases for \lstinline{loop}:
-\begin{align}
-    \label{algn:loop-i}
-    \dots; i: \kappa_i; i < n \vdash \{\nu = i + 1 \} <: \kappa_i
-\end{align}
-This constraint ensures that the argument $i + 1$ to \lstinline{loop} is a member of the argument type $\kappa_i$.
-Similarly the second constraint forces the argument $i$ to be of the type $\kappa_3$ of the first argument of \lstinline{f}.
-\begin{align}
-    \label{algn:f}
-    \dots; i: \kappa_i; i < n \vdash \{\nu = i \} <: \kappa_3
-\end{align}
-For the call of \lstinline{loop 0} we obtain
-\begin{align}
-    \label{algn:loop-0}
-    \dots \vdash \{\nu = 0 \} <: \kappa_i
-\end{align}
-which ensures that $0$ is a member of $\kappa_i$.
-In step 3 $\kappa_n$ is assigned to true since we can call \lstinline{foldn} with any $n$.
-For $\kappa_i$ we obtain $0 \le \nu$ which trivially satisfies constraints~(\ref{algn:loop-i}) and (\ref{algn:loop-0}).
-By plugging this in constraint~(\ref{algn:f}) we get $0 \le \nu \land \nu < n$ for $\kappa_3$.
-All in all we have:
-\begin{center}
-    \lstinline{foldn} :: $\forall \alpha.\,n:$ \lstinline{int} $\rightarrow b: \alpha \rightarrow f:(\{0 \le \nu \land \nu < n\} \rightarrow \alpha \rightarrow \alpha) \rightarrow \alpha$
-\end{center}
-
-\subsubsection{Polymorhism and Array Bounds Checking}
-
-We assume a type \lstinline{intarray} of arrays over integers and a function \lstinline{len} which yields the number of elements in the array.
-The array access function \lstinline{sub} has the type
-$a:$ \lstinline{intarray} $\rightarrow j: \{\nu:$ \lstinline{int} $\mid 0 \le \nu \land \nu < $ \lstinline{len} $a\} \rightarrow$ \lstinline{int}.
-The function \lstinline{arraymax} from Listing~(\ref{lst:exmpl}) uses the above functions to determine the maximum of 0 and the elements of an array.
-We show that the array access is safe and that \lstinline{arraymax} returns a value greater or equal to 0.
-Step 1 produces the templates $a:$ \lstinline{intarray} $\rightarrow \kappa_4$ for \lstinline{arraymax} and $l: \kappa_l \rightarrow m: \kappa_m \rightarrow \kappa_5$ for \lstinline{am}.
-Additionally we get $\kappa_6$ as instantiation for $\alpha$ in the template of \lstinline{foldn}.
-Step 2 generates for \lstinline{sub l a}:
-\begin{align}
-    l: \kappa_l; m: \kappa_m \vdash \{\nu = l\} <: \{0 \le \nu \land \nu < \text{\lstinline|len| } a\}
-\end{align}
-For \lstinline{max (sub l a) m} we get which constraints the body type of \lstinline{am}:
-\begin{align}
-    l: \kappa_l; m: \kappa_m \vdash \{\text{\lstinline|sub l a|} \le \nu \land m \le \nu \} <: \kappa_5
-\end{align}
-We obtain for \lstinline{foldn (len a) 0}:
-\begin{align}
-    \dots \vdash \{ \nu = 0 \} <: \kappa_6
-\end{align}
-For \lstinline{foldn (len a) 0 am} we have:
-\begin{align}
-    \dots \vdash l: \kappa_l \rightarrow m: \kappa_m \rightarrow \kappa_5 <: \{0 \le \nu \land \nu < \text{\lstinline|len| } a\} \rightarrow \kappa_5 \rightarrow \kappa_6
-\end{align}
-This constraint reduces to
-\begin{align}
-    & \dots \vdash \{0 \le \nu \land \nu < \text{\lstinline|len| } a\} <: \kappa_l \\
-    & \dots \vdash \kappa_6 <: \kappa_m \\
-    & \dots \vdash \kappa_5 <: \kappa_6
-\end{align}
-We ensure that the body type of the \lstinline{foldn} is a subtype of the body type of \lstinline{arraymax} by
-\begin{align}
-    \dots \vdash \kappa_6 <: \kappa_4
-\end{align}
-Step 3 uses for $\kappa_m, \kappa_4, \kappa_5$ and $\kappa_6$ the qualifier $0 \le \nu$.
-$\kappa_l$ is assigned to $0 \le \nu \land \nu < \text{\lstinline|len| } a$.
-Therefore we obtain:
-\begin{center}
-    \lstinline{arraymax} :: \lstinline{intarray} $\rightarrow \{ \nu:$ \lstinline{int} $\mid 0 \le \nu \}$
-\end{center}
-
-
-
-\subsection{Liquid Type Checking}
+\subsubsection{Details}
 
 The liquid type checking is formalized in a $\lambda$-calculus with \lstinline{if}- and \lstinline{let}-expressions, recursive funtions and polymorphism.
 Intuitively a liquid type $T$ is well-formed under the environment $\Gamma$ ($\Gamma \vdash T$) if the free variables occuring in the refinements of $T$ are bound in $\Gamma$.
@@ -599,11 +469,8 @@ Then soundness is obtained using the following theorems, where $\succ$ is the si
     \item (Progress) If $\emptyset \vdash e: T$ and $e$ is not a value then $\exists e'. e \succ e'$.
 \end{enumerate}
 
-
-\subsection{Liquid Type Inference}
-
 The 3 steps of the type inference can be implemented in the formal setting.
-The examples given in Subsection~\ref{subsec:exmpl} illustrate some cases of this algorithm.
+%The examples given in Subsection~\ref{subsec:exmpl} illustrate some cases of this algorithm.
 Also for this algorithm called \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) one can show some theorems:
 \begin{enumerate}
     \item \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) terminates.
@@ -613,7 +480,7 @@ Also for this algorithm called \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) one ca
 
 Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q} = T$ then the evalution of $e$ won't get stuck.
 
-\subsection{Experiments}
+\subsubsection{Evaluation}
 
 In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
@@ -719,7 +586,7 @@ Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are a
 
 \section{Context and Connection (feel free to change the section names)}
 
-  As briefly mentioned in~\ref{section:Introduction}, Dependent Types and its
+  As briefly mentioned in section~\ref{sec:intro}, Dependent Types and its
   subsequent improvements are extensions to the standard type systems discussed
   in the class.  These extensions make the type system more expressive and thus
   enable it to prove (and enforce) more properties.

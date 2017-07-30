@@ -244,7 +244,7 @@ This is tedious and sometimes it is not easy to come up with the correct depende
 Therefore Rondon et al. introduced logically qualified data types or short liquid types~\cite{Rondon:2008:LT}.
 The advantage of liquid types is that those types can be inferred automatically.
 
-\subsubsection{Main Idea}
+\subsubsection{Solution}
 
 Liquid types are dependent types where we restrict the refinements to conjunctions of predicates (qualifiers) and their negations.
 This restriction is similar to predicate abstraction.
@@ -302,9 +302,9 @@ The analysis can also handle recursion, higher-order functions and polymorphism.
 
 \subsubsection{Evaluation}
 
-In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
+In order to assess the advantage of this approach, liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
-To allow array bounds checking predicates which compare ($<, \le, =, \neq, \geq, >$) $\nu$ with 0, program variables and the length of arrays are used.
+To allow array bounds checking, predicates which compare ($<, \le, =, \neq, \geq, >$) $\nu$ with 0, program variables and the length of arrays are used.
 In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations, i.e. predicates.
 Compared to the \textbf{DML} project the impact is very big.
 Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} needs less than 1\% of lines and characters.
@@ -395,7 +395,7 @@ Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are a
           measure must be explicitly specified by the user.
       \end{itemize}
 
-    \subsection{Implementation and Result}
+    \subsubsection{Implementation and Result}
 
       LIQUIDHASKELL, a Haskell extension with refinement types succesfully
       brings refinement typechecking under lazy evaluation.  The termination
@@ -431,7 +431,7 @@ for certain analyses.
 \section{Conclusion}
 
 Dependent types allow a programmer to perform checking of certain run-time
-program properties statically. However, The full richness of dependent types
+program properties statically. However, the full richness of dependent types
 comes at the cost of undecidability of the type checking. The shown
 developments retain decidability and allow for a limited form of dependent
 types to be used in the program.

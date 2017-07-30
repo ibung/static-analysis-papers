@@ -75,18 +75,29 @@
 
 \section{Summary of Papers}
 
-\section{Paper 1: Eliminating array bound checking through dependent types}
+\subsection{Paper 1: Eliminating array bound checking through dependent types}
 
-\abstract
+The problem of array bound checking is persistent in many programming
+languages. That is, the languages that are said to be memory-safe in the
+runtime such as \textbf{ML} or \textbf{Java} need to include the checks for
+array access in the compiled code resulting in the increased execution time
+costs when the checking is redundant. On the other hand, the languages that do
+not employ array bound checking in runtime, such as \textbf{C} result in
+particularly unpleasant runtime bugs when the programmer is not careful.
 
-Originating in type theory, dependent types is a powerful concept for extending
-type checking for the purposes of program analysis. Its applications allow to
-perform many advanced forms of analysis with a little work on the programmer's
-side (providing correct type annotations). One of such applications is
-elimination of array bound checking during the compilation time using dependent
-types.
+To address this issue, several methods have been developed over time. Many of
+such methods try to eliminate redundant checks without any help from the
+programmer, through generation of loop invariants which is not generally
+decidable in theory and may be difficult in practice.
 
-\subsection{Note on dependent types}
+A possible approach to solving this problem is to use dependent types. This
+way, array bound checking is performed during the type checking through an
+integer constraint validation. Naturally, that brings no additional cost for
+the runtime.  However, this approach requires some help from the programmer,
+namely, correct type annotations for the program. The following sections will
+concern the implementation and application for the idea.
+
+\subsubsection{Dependent types}
 
 The concept of the dependent types is quite rich and well-studied, the main
 idea behind it is that dependent type systems unlike systems with simple types
@@ -103,170 +114,66 @@ of functions for which the type of the return value depends on the argument.
 The important point of the dependent typing is that it reveals more information
 about the function.
 
-In the following no knowledge of the full theory of dependent types is assumed,
-and furthermore, no such knowledge is required, as for the purpose of the paper
-only a limited part of the dependent type systems is used. This part is fully
-explained in the following sections. The limitation excludes terms of general
-form (that possibly make type checking undecidable) from type formers and only
-allows for a limited set of decidable refinements to be used.
+It's worth notice that the general definition of the dependent types allows for
+terms of any kind to be used in the typing expression. Naturally, this makes
+type checking equivalent to an execution of an arbitrary program, which in
+turns makes it undecidable in general.
 
-However, some familiarity with the type theory notation and/or ML syntax
-will be assumed.
+To avoid this problem a restricted form of dependent types is required that
+will allow to remain decidable and at the same time be expressive enough to
+solve the problem at hand.
 
-For a full study on the dependent types the reader is referred to the following
-paper \cite{Hofmann97syntaxand}.
+For a full study on the dependent types the reader is referred to
+\cite{Hofmann97syntaxand}.
 
-\subsection{Introduction}
-The problem of an absence of runtime array bound checking in lower level
-languages, such as C has led to numerous problems over time. However, even in
-the languages that perform this runtime checking, it still makes an issue
-imposing additional execution time costs for every array access.  Moreover,
-this issue is present not only for the imperative languages with array
-accesses, but also for more general cases of accessing list elements through
-pattern matching in strongly typed functional languages. Traditional compiler
-optimizations for this analysis do not guarantee that they are always able to
-infer the correct array bounds \cite{Gupta:1993}\cite{Suzuki:1977}.
+\subsubsection{Restriction on dependent types}
 
-On the other hand, approach that relies on the dependent types makes array
-bounds checking a part of the type checking, with appropriate (albeit minor)
-help from the programmer in form of more advanced type annotations. These
-annotations construct a set of linear arithmetic value constraints which can be
-efficiently checked for the satisfiability.
+\textbf{DML}, a language that covers an \textbf{ML} fragment extended with a
+limited form of dependent types is used to give a practical validation for the
+solution. This fragment matches the core language of the \textbf{ML} standard,
+making omission for exceptions and modules, and contains the addition of the
+restricted form for the dependent type annotations.
 
-To give a practical validation to the  concept all examples are given in a
-language that implements ML fragment extended with a limited form of dependent
-types. This fragment matches the core language of ML standard, making omission
-for exceptions and modules, which are not relevant to the issue by themselves,
-and contains the addition of type annotations that cover the required
-expressibility properties.
+This form is consists of linear integer arithmetic (LIA) and boolean
+expressions that can be solved by a LIA solver.
 
-In the following, a value on which a dependent type is formed will be called an
-\emph{index object}. For example, a type of integer lists in ML would be
-written as follows: \texttt{int list}. To express a type of the integer lists
-of length two one writes: \texttt{int list(2)}, where 2 is exactly the
-\emph{index object}.  Then a function to append two integer lists of fixed
-lengths \texttt{n} and \texttt{m} would have the type: \texttt{int(n) -> int(m)
--> int(n+m)}.
+In the concrete syntax a value on which a dependent type is formed will be
+called an \emph{index object}. For example, a type of integer lists in
+\textbf{ML} would be written as follows: \texttt{int list}. To express a type
+of the integer lists of length two one writes: \texttt{int list(2)}, where 2 is
+exactly the \emph{index object}. Then a function to append two integer lists of
+some fixed lengths \texttt{n} and \texttt{m} would have the type:
+\texttt{int(n) -> int(m) -> int(n+m)}.
 
-It is worth notice that if arbitrary terms can be used as index objects, then
-type checking becomes undecidable, since it would involve arbitrary
-computations.  Considering this, severe limitations on the index objects will
-be imposed, distinguishing them from the general term of the implemented
-language.
+Index objects can be boolean constants $false$, $true$ or boolean expressions
+composed by $\land$, $\lor$, $\neg$, and integer expressions resulting in
+either boolean or integer that are composed with the usual operations on
+integers: $+$, $-$, $*$, $div$, $min$, $max$, $abs$, $sign$, $mod$, $>$, $<$,
+$\ge$, $\le$, $=$.
 
-\subsection{Types and typing}
+To quantify the variables used in the index object one writes \texttt{\{a:g\}
+t} for the universal quantification (often written in the literature as $\Pi a:
+\gamma.  \tau$) and \texttt{[a:g] t} for the existential quantification
+($\Sigma a: \gamma. \tau$).  $\{ a: g | b \}$ corresponds to those elements of
+a type $g$ that satisfy the boolean constraints $b$. There's also a shorthand
+\texttt{\{a:g | b\} t} for $\Pi a: \{a: \gamma | b\}. \tau$. And then $nat$
+serves as an abbreviation for \texttt{\{a: int | a >= 0\}}.
 
-\subsubsection{The language of types}
-This section presents a syntax for writing the index objects and forming the
-type annotations in the implemented language.
-
-Type indices may be integer or boolean expressions defined below.
-$a$ ranges over the index variables.
-\begin{align*}
-  \text{Integer index } & i,j &&::= &&& a|i+j|i-j|i*j|div(i,j)\\
-                &     &&    &&& |min(i,j)|max(i,j)\\
-                &     &&    &&& |abs(i)|sign(i,j)|mod(i,j)\\
-  \text{Boolean index } & b &&::= &&& a|false|true\\
-                &     &&    &&& |i < j | i \leq j \\
-                &     &&    &&& |i = j|i \geq j | i > j\\
-                &     &&    &&& |\neg b| b_1 \land b_2 | b_1 \lor b_2\\
-  \text{Index } & d &&::= &&& i|b
-\end{align*}
-
-$\delta$ ranges over base types or \emph{basic type families}, that may be built-in
-(\texttt{int}, \texttt{array}) or user-declared. $\alpha$ stands for type variables.
-\begin{align*}
-  \text{Index sort } & \gamma &&::= &&& int | bool | \{ a: \gamma | b \}\\
-  \text{Types } & \tau &&::= &&& \alpha | (\tau_1, \dots, \tau_n)\delta (d_1, \dots, d_k) | \{ a: \gamma | b \}\\
-                &      &&    &&& | \tau_1 * \dots * \tau_n | \tau_1 \to \tau_2\\
-                &      &&    &&& | \Pi a: \gamma. \tau | \Sigma a: \gamma. \tau
-\end{align*}
-
-For clarity, the type constructor with no arguments or indices is written
-simply as $\delta$ (instead of $()\delta()$).
-
-Notation $\{ a: \gamma | b \}$ denotes those elements of $\gamma$ that satisfy
-the boolean constraints $b$.  $nat$ serves as an abbreviation for $\{ a: int |
-a \geq 0 \}$. The types $\Pi a: \gamma. \tau$ and $\Sigma a: \gamma. \tau$
-denote universal and existential quantification of $a$ respectively.
-
-In the examples, implementation language uses uses \texttt{\{a:g\} t} for $\Pi
-a: \gamma. \tau$ and \texttt{[a:g] t} for $\Sigma a: \gamma. \tau$. One can
-also write \texttt{\{a:g | b\} t} for $\Pi a: \{a: \gamma | b\}. \tau$.
-
-\subsubsection{Built-in type families}
-
-The examined ML fragment extension includes type families for integers, arrays
-and booleans as built-in.
-
-\begin{itemize}
-  \item For every integer $n$, \texttt{int(n)} is a singleton type containing
-    only $n$.
-  \item \texttt{bool(true)} and \texttt{bool(false)} are singleton types for
-    \texttt{true} and \texttt{false} respectively.
-  \item For a natural number $n$, \texttt{'a array(n)} is the type for arrays
-    of size $n$ over a type \texttt{'a}
-
-    One can also omit indices in type specification, in that case they will
-    interpreted existentially. For instance, the type \texttt{int array} will
-    be converted to $\Sigma n : nat$.\texttt{int array}$(n)$, which can be read
-    as an array of an unknown size $n$.
-\end{itemize}
-
-\subsubsection{Datatype refinements}
-
-As in ML standard, besides having such types as \texttt{int}, \texttt{bool} and
-\texttt{array}, users can declare their own types with the usual construct.
-Consider a declaration of a list type:
-\begin{verbatim}
-datatype 'a list =
-  nil
-| :: of 'a * 'a list
-\end{verbatim}
-
-There's then a possibility to refine this declaration with type indices:
-\begin{verbatim}
-typeref 'a list of nat
-with nil <| 'a list(0)
-| :: <| {n:nat} 'a * 'a list(n) -> 'a list(n+1)
-\end{verbatim}
-
-And this refinement forms a dependent type for lists with the list size exposed
-in the type, that was discussed earlier.
-
-\subsubsection{Example functions}
-
-\begin{lstlisting}[caption={The dot product function},label=dotprod,captionpos=t,float,abovecaptionskip=-\medskipamount]
-assert length <| {n:nat} 'a array(n) -> int(n)
-and sub <| {n:nat} {i:nat | i < n} 'a array(n) * int(i) -> 'a
-
-fun dotprod(v1, v2) =
-  let
-    fun loop(i, n, sum) =
-      if i = n then sum
-      else loop(i+1, n, sum + sub(v1, i) * sub(v2, i))
-    where loop <| {n:nat} {i:nat | i <= n}
-      int(i) * int(n) * int -> int
-  in
-    loop(0, length v1, 0)
-  end
-where dotprod <| {p:nat} {q:nat | p <= q }
-  int array(p) * int array(q) -> int
+\begin{lstlisting}[caption={The filter function for lists},label=filter,captionpos=t,float,abovecaptionskip=-\medskipamount]
+fun filter p nil = nil
+  | filter p (x::xs) =
+    if p(x) then x::(filter p xs)
+    else filter p xs
+where filter <| {m: nat}
+  ('a -> bool) -> 'a list(m) -> [n:nat | n <= m] 'a list(n)
 \end{lstlisting}
 
-To introduce the language, Figure \ref{dotprod} shows an example of a function
-calculating the dot product of two vectors organized as arrays.
-
-The example illustrates the use of the dependent types in the language, where
-dependent types are given after the \texttt{where} keyword. It's worth notice
-that if one decides to omit the lines containing \texttt{where} from the
-function code, the function can be accepted by any compiler adhering to the ML
-standard. Predefined function \texttt{length} returns the length of a given
-array and \texttt{sub} returns an element at the specified position. Note that
-the type declaration of \texttt{sub} ensures that the array access is always
-within the array bounds and therefore avoids the need for the runtime bound
-checking. The same use of the dependent types is applied to \texttt{loop} and
-\texttt{dotprod} type declarations.
+Figure \ref{filter} serves as an example program. It depicts a function that
+given a list over some type $A$ and a predicate on $A$ returns a list
+containing all the elements that satisfy the predicate. The dependent types
+annotation, \texttt{where filter <| \{m: nat\} ('a -> bool) -> 'a list(m) ->
+[n:nat | n <= m] 'a list(n)} displays the relation between input and output
+lists, that is that the resulting list is shorter than the initial.
 
 \begin{lstlisting}[caption={The reverse function for lists},label=reverse,captionpos=t,float,abovecaptionskip=-\medskipamount]
 fun reverse(l) =
@@ -281,50 +188,21 @@ end
 where reverse <| {n:nat} 'a list(n) -> 'a list(n)
 \end{lstlisting}
 
-Another example on Figure \ref{reverse} illustrates a function computing the
-reverse of a given list. The type here ensures that the size of the list
-doesn't change from the argument to the result.
+For another example consider the function that returns a reverse for a given
+list. Figure \ref{reverse} displays the implementation of such a function in
+\textbf{DML}. The type here ensures that the size of the list doesn't change
+from the argument to the result.
 
-\begin{lstlisting}[caption={The filter function for lists},label=filter,captionpos=t,float,abovecaptionskip=-\medskipamount]
-fun filter p nil = nil
-  | filter p (x::xs) =
-    if p(x) then x::(filter p xs)
-    else filter p xs
-where filter <| {m: nat}
-  ('a -> bool) -> 'a list(m) -> [n:nat | n <= m] 'a list(n)
-\end{lstlisting}
+\subsubsection{Type checking on the restriction}
 
-Figure \ref{filter} depicts a function that makes use of existentially
-quantified dependent types. This function removes all elements from the list
-$l$ which do not satisfy the predicate $p$. Obviously, for an arbitrary $p$,
-it's impossible to give an exact value of the resulting list size without
-computing the function. Therefore this value cannot be accepted as a function
-argument, but still can have a specific bound, that is -- the size of the
-resulting list should not be greater than the size of the initial list.
-\texttt{[n:nat | n <= m] 'a list(n)} expresses exactly this, yielding a list of
-some definitive size, which is bound by a fixed number.
+The first step of type checking in \textbf{DML} is to ignore index objects and
+ensure that the program type checks without them as an \textbf{ML} program.
+Afterwards, index objects are checked. Since the allowed expressions form
+linear integer inequalities, constraints on the integers can be extracted form
+the index objects and checked separately.
 
-More details to the language and example programs can be found in
-\cite{Xi:1998}\cite{XiPhd:1998}.
-
-\subsection{Constraints}
-
-The given definition of dependent types leads to a formation of constraints on
-the values used in the program, where constraints are boolean index expressions
-enriched with explicit quantifiers and implication.
-
-The language for constrains is as follows:
-\begin{align*}
-  \text{Constraints } &\phi &&::= &&&b | \phi_1 \land \phi_2 | b \supset \phi\\
-                      &     &&    &&&| \exists a : \gamma. \phi | \forall a : \gamma. \phi
-\end{align*}
-
-Constraints are extracted from the program after it has been type checked
-ignoring dependent types and verified correct by the ML type inference.
-
-\subsubsection{Constraint generation}
-
-Consider the \texttt{rev} function from the Figure \ref{reverse}:
+Consider for the example the \texttt{rev} function from the Figure
+\ref{reverse}:
 \begin{verbatim}
 fun rev(nil, ys) = ys
   | rev(x::xs, ys) = rev(xs, x::ys)
@@ -332,13 +210,15 @@ where rev <| {m:nat} {n:nat}
   'a list(m) * 'a list(n) -> 'a list(m+n)
 \end{verbatim}
 
-For the first case of \texttt{rev}, namely \texttt{rev(nil, ys) = ys} the two
-variables $M$ and $N$ are generated according to the index objects of the
-function type.  Then \texttt{nil} is checked against the type \texttt{'a
-list($M$)} and \texttt{ys} is checked against the type \texttt{'a list($N$)}.
+It uses pattern matching as a function definition and thus one can consider the
+two cases of \texttt{rev} separately. For the first case, \texttt{rev(nil, ys)
+= ys} the two variables $M$ and $N$ are generated according to the index
+objects of the function type. Then \texttt{nil} is checked against the type
+\texttt{'a list($M$)} and \texttt{ys} is checked against the type \texttt{'a
+list($N$)}.
 
-This generates constraints $M = 0$ and $N = \texttt{n}$, where \texttt{ys} is
-assumed to be of type \texttt{'a list(n)}. Afterwards, the type of the right
+This generates the constraints $M = 0$ and $N = \texttt{n}$, where \texttt{ys}
+is assumed to be of type \texttt{'a list(n)}. Afterwards, the type of the right
 hand side of the pattern matching clause, \texttt{ys}, is checked against
 \texttt{'a list($M$ + $N$)}, the result type for \texttt{rev}. This yields a
 constraint $M + N = \texttt{n}$.
@@ -346,48 +226,28 @@ constraint $M + N = \texttt{n}$.
 Thus, the first clause of the pattern matching in the function definition
 generates the constraint:
 
-$\forall n : nat. \exists M : nat. \exists N : nat. (M = 0 \land N = n \supset M + N = n)$
-
-This is simplified by the elimination of the existential variables to:
-
 $\forall n : nat. (0 + n = n)$
 
-which is stored and easily verified on the later stages.
-
-Applying the same procedure to the second case in the definition,
-\texttt{rev(x::xs, ys) = rev(xs, x::ys)} provides the following constraint:
+Analogously for the second case, \texttt{rev(x::xs, ys) = rev(xs, x::ys)}:
 
 $\forall m : nat. \forall n : nat.(m + 1) + n = m + (n + 1)$,
 
-that can also be satisfied.
+Such constraints are then solved with a LIA-solver and if they are found
+satisfiable then the type checking succeeds.
 
-\subsubsection{Constraint solving}
+\subsubsection{Evaluation}
 
-The reader may notice, that constraints obtained by the given syntactic rules
-generate a set of linear integer arithmetic equations and thus can be solved by
-any LIA solver. For the purpose, many various methods exists, such as
-Fourirer-Motzkin, Simplex, SUP-INF, etc.
+The use of the dependent types allows the compiler to know the length of all
+properly type annotated lists and arrays in the program. Because of that, the
+runtime array bound checks become redundant and the compiler may safely omit
+them, which is what the \textbf{DML} compiler does.
 
-Applying these methods to the set of constrains will ensure that type checking
-on dependent types passes if and only if the constrains are satisfiable by the
-solving procedure.
-
-\subsubsection{Experiments}
-
-The computational experiments with the programs written using this bound
-checking elimination technique show a stable performance gain (10-70\%) among
-the studied programs. The associated code changes (type annotations) are
-considerably insignificant in size compared to the overall size of the program.
-
-The exact implementation and experimental details are found in \cite{Xi:1998}.
-
-\subsection{Related work}
-
-The original paper became the influential example of a practical dependent
-types application for the purposes of static analysis. The ideas got
-implemented in form of DML dialect of ML \cite{XiPhd:1998} and inspired further
-developments in refinement types.
-
+The set of benchmarks consists of the programs taken from a few
+\textbf{Standard ML} implementations standard libraries and adjusted for the
+\textbf{DML}. The measurements display the considerable performance gain of
+average 30\% among all programs.  These benefits come at the cost of changing
+the type annotations to include dependent types which take about 17\% of lines
+in the programs.
 
 \subsection{Paper 2: Liquid Types}
 

@@ -249,8 +249,9 @@ in the programs.
 
 \subsection{Paper 2: Liquid Types}
 
-\subsubsection{Goal/Problem}
-The approach presented in~\cite{Xi:1998:EAB} needs many manual type annotations.
+\subsubsection{Problem}
+
+The approach presented by the previous paper~\cite{Xi:1998:EAB} needs many manual type annotations.
 This is tedious and sometimes it is not easy to come up with the correct dependent type.
 Therefore Rondon et al. introduced logically qualified data types or short liquid types~\cite{Rondon:2008:LT}.
 The advantage of liquid types is that those types can be inferred automatically.
@@ -273,10 +274,6 @@ To infer such types automatically 3 steps are executed:
     \item Step 3 tries to solve these constraints by embedding them into a decidable logic.
 \end{enumerate}
 
-%mention this when using the notation
-%A base type $B$ is a short form of $\{\nu: B \mid true\}$.
-%We write $\kappa$ for $\{\nu: B \mid \kappa\}$ with a liquid type variable $\kappa$ if the base type $B$ is clear from the context.
-
 \begin{lstlisting}[caption={Example Program},label=lst:exmpl,captionpos=t,float,abovecaptionskip=-\medskipamount]
 let max x y =
     if x > y then x else y
@@ -295,12 +292,13 @@ Step 2 generates the following constraints since the body is an \lstinline{if}-e
 \end{align}
 The first constraint forces the type of the \lstinline{then}-branch (namely $\{\nu:$ \lstinline{int} $\mid \nu = x \}$) to be a subtype
 of the body ($\kappa$) in the environment where $x$ and $y$ have the appropriate types as well as the branch condition is true.
-The second contraint is analogous.
+The second contraint is analogous for the \lstinline{else}-branch.
 Note that in the environment the branch condition is false.
 Step 3 translates these two constraints into a decidable logic and solves them using the predicates $P := \{x < \nu, x \le \nu, x = \nu, y < \nu, y \le \nu, y = \nu\}$.
 First we set $\kappa_x$ and $\kappa_y$ to true because there are no constraints on $\kappa_x$ and $\kappa_y$.
 This says that \lstinline{max} can be called by any integer.
-For $\kappa$ we consider each case seperatly and do the same as for predicate abstraction.
+For $\kappa$ we consider each case seperatly and build a conjunction of provable predicates and provable negated predicates.
+This is again similar to predicate abstraction.
 The first constraint simplifies then to $x > y \land \nu = x \Rightarrow \kappa$.
 Therefore we obtain $\kappa := \neg(x < \nu) \land x \le \nu \land x = \nu \land y < \nu \land y \le \nu \land \neg(y = \nu)$ for the first constraint.
 The second constraint simplifies to $\neg(x > y) \land \nu = y \Rightarrow \kappa$
@@ -314,18 +312,18 @@ Thus we obtain the type:
 This example shows that the analysis is path sensitive by adding conditions to the environment.
 The analysis can also handle recursion, higher-order functions and polymorphism.
 
-\subsubsection{Details}
+\iffalse
+\subsubsection{Formalization}
 
-The liquid type checking is formalized in a $\lambda$-calculus with \lstinline{if}- and \lstinline{let}-expressions, recursive funtions and polymorphism.
-Intuitively a liquid type $T$ is well-formed under the environment $\Gamma$ ($\Gamma \vdash T$) if the free variables occuring in the refinements of $T$ are bound in $\Gamma$.
-The environment $\Gamma$ consists of type bindings ($x: T$) and predicates.
-For example we can say that $\{\nu:$ \lstinline{int} $\mid x \le \nu \land y \le \nu$ is well-formed under $x:$ \lstinline{int}; $y:$ \lstinline{int}.
-In addition there is also a decidable subtype judgment $\Gamma \vdash T_1 <: T2$ stating that $T_1$ is a subtype of $T_2$ under environment $\Gamma$.
-As example consider $x:$ \lstinline{int}; $y:$ \lstinline{int}; $(x > y) \vdash \{\nu = x \} <: x \le \nu \land y \le \nu$
-The liquid type judgement $\Gamma \vdash_{\mathbb{Q}} e: T$ says that the expression $e$ has type $T$ under environment $\Gamma$ if one considers the logical qualifiers $\mathbb{Q}$.
-For example we can show $\Gamma \vdash_{\mathbb{Q}}$ \lstinline{let} $s$ \lstinline{= sum (k - 1) in s + k} $: T$ if $T$ is well-formed under $\Gamma$ and the refinements of $T$ consists of conjunctions over logical qualifiers in $\mathbb{Q}^\star$, plus
-$\Gamma \vdash_{\mathbb{Q}}$ \lstinline{sum (k - 1)} $:T_1$ and $\Gamma; x: T_1 \vdash_{\mathbb{Q}}$ \lstinline{s + k} $: T$.
-Then soundness is obtained using the following theorems, where $\succ$ is the single evaluation step relation:
+In order to formalize liquid type checking the simply typed lambda calculus is extended with \lstinline{if}- and \lstinline{let}-expressions plus polymorhism and dependent types.
+The typing rules are extended to accommodate those changes.
+The liquid type judgement $\Gamma \vdash e: T$ says that the expression $e$ has type $T$ under environment $\Gamma$,
+where the environment $\Gamma$ consists of type bindings ($x: T$) and predicates.
+
+In addition there is also a decidable subtype judgment $\Gamma \vdash T_1 <: T_2$ stating that $T_1$ is a subtype of $T_2$ under environment $\Gamma$.
+Decidablity is obtained by using a translation into a decidable logic.
+
+Then type safety is obtained using the following theorems, where $\succ$ is the single evaluation step relation:
 \begin{enumerate}
     \label{thm:sound}
     \item (Preservation) If $\Gamma \vdash e: T$ and $e \succ e'$ then $\Gamma \vdash e': T$.
@@ -333,23 +331,23 @@ Then soundness is obtained using the following theorems, where $\succ$ is the si
 \end{enumerate}
 
 The 3 steps of the type inference can be implemented in the formal setting.
-%The examples given in Subsection~\ref{subsec:exmpl} illustrate some cases of this algorithm.
-Also for this algorithm called \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) one can show some theorems:
+One can show that if this terminating algorithm returns a type 
+Also for this terminating algorithm one can show some theorems:
 \begin{enumerate}
-    \item \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) terminates.
-    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q}) = T$ then $\Gamma \vdash_{\mathbb{Q}} e: T$.
-    \item If \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) returns no type then $\nexists T.\, \Gamma \vdash_{\mathbb{Q}} e: T$.
+    \item If \lstinline{Infer}$(\Gamma, e, \mathbb{Q}) = T$ then $\Gamma \vdash e: T$.
+    %\item If \lstinline{Infer}($\Gamma, e, \mathbb{Q}$) returns no type then $\nexists T.\, \Gamma \vdash e: T$.
 \end{enumerate}
 
 Combining these with the theorems~\ref{thm:sound} we obtain that if \lstinline{Infer}$(\emptyset, e, \mathbb{Q}) = T$ then the evalution of $e$ will not get stuck.
+\fi
 
 \subsubsection{Evaluation}
 
 In order to assess the advantage of this approach liquid type inference is implemented in \textbf{DSolve}.
 It is tested over a set of benchmarks from the \textbf{DML} project~\cite{Xi:1998:EAB}.
-To allow array bounds checking the predicates are comparisons (i.e. $<, \le, =, \neq, \geq, >$) between $\nu$ and 0, program variables plus length of arrays.
+To allow array bounds checking the predicates compare ($<, \le, =, \neq, \geq, >$) $\nu$ with 0, program variables and the length of arrays.
 In most cases \textbf{DSolve} can prove the safety of array accesses without additional annotations i.e. predicates.
-If predicates are missing the infered types help to identify which ones should be added.
+If predicates are missing the inferred types help to identify which ones should be added.
 Compared to the \textbf{DML} project the impact is very big.
 Whereas in the \textbf{DML} project 17\% of all lines (31\% of characters) are annotations \textbf{DSolve} needs less than 1\% of lines and characters.
 
